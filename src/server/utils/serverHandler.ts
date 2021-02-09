@@ -9,41 +9,44 @@ import modifyHTML from './modifyHTML';
 
 const configs = workspace.getConfiguration('lively-reload');
 
-export default class ServerEvents {
-  app: Express
-  server: Server
-  sockets: Set<Socket>
+let app: Express;
+let server: Server;
+let sockets: Set<Socket>;
+let serverRunning = false;
 
-  constructor(app: Express, server: Server, sockets: Set<Socket>) {
-    this.app = app;
-    this.server = server;
-    this.sockets = sockets;
-  }
+export function initServerHandler(myApp: Express, myServer: Server, mySockets: Set<Socket>) {
+  app = myApp;
+  server = myServer;
+  sockets = mySockets;
+}
 
-  startServer() {
-    const [port, dir] = ['port', 'dir'].map(prop => configs.get(prop));
-    const root = workspace.workspaceFolders?.[0].uri.fsPath;
-    const startMessage = 'Server started on 127.0.0.1:' + port + '.';
+export function isServerRunning() { return serverRunning }
 
-    if (!root) { window.showErrorMessage('No directory found.'); return }
-    
-    this.app.get('/', async (_req, res) => {
-      const content = readFileSync(join(root, dir, 'index.html'), 'utf8');
-      const injectedContent = modifyHTML(content);
-      res.send(injectedContent);
-    });
-    this.app.use(staticDir(join(root, dir)));
-    
-    this.server.listen(port, () => (window.showInformationMessage(startMessage, { title: 'Dismiss' })));
-    // openUrl('http://127.0.0.1:' + port);
+export function startServer() {
+  const [port, dir] = ['port', 'dir'].map(prop => configs.get(prop));
+  const root = workspace.workspaceFolders?.[0].uri.fsPath;
+  const startMessage = 'Server started on 127.0.0.1:' + port + '.';
 
-    statusButton.setLoading();
-  }
+  if (!root) { window.showErrorMessage('No directory found.'); return }
+  
+  app.get('/', async (_req, res) => {
+    const content = readFileSync(join(root, dir, 'index.html'), 'utf8');
+    const injectedContent = modifyHTML(content);
+    res.send(injectedContent);
+  });
+  app.use(staticDir(join(root, dir)));
+  
+  server.listen(port, () => (window.showInformationMessage(startMessage, { title: 'Dismiss' })));
+  // openUrl('http://127.0.0.1:' + port);
 
-  closeServer() {
-    this.server.close();
-    this.sockets.forEach(socket => socket.destroy());
-    setTimeout(() => console.log(this.sockets), 2000);
-    statusButton.setDoStart();
-  }
+  serverRunning = true;
+  
+  statusButton.setLoading();
+}
+
+export function closeServer() {
+  server.close();
+  sockets.forEach(socket => socket.destroy());
+  serverRunning = false;
+  statusButton.setDoStart();
 }

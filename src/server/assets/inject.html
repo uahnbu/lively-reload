@@ -31,7 +31,7 @@
         return;
       }
       const style = document.querySelector('#\\' + id);
-      style.textContent = content;
+      style && (style.textContent = content);
       return;
     }
 

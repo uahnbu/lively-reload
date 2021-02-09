@@ -1,8 +1,11 @@
-import { TextDocumentChangeEvent, workspace } from 'vscode';
-import { modifyHTML, webSocket } from '../../server';
+import { TextDocument, TextDocumentChangeEvent, workspace } from 'vscode';
+import { modifyHTML, sendMessage } from '../../server';
 
-export function editorOnSave() {
-  webSocket.sendMessage({ task: 'reload' });
+const changedFiles = new Map<string, string>();
+
+export function editorOnSave({fileName}: TextDocument) {
+  changedFiles.has(fileName) && changedFiles.delete(fileName);
+  sendMessage({ task: 'reload' });
 }
 
 export function editorOnChange(event: TextDocumentChangeEvent) {
@@ -19,6 +22,7 @@ function handleFileChange(file: string, content: string) {
   const msg: { task?: 'injectCSS' | 'injectHTML', data?: string } = {};
   const fileName = file.match(/(?<=\\)[^\\]+(?=\.[^.\\]+$)/)![0];
   if (file.endsWith('.css')) {
+    content = minifyCSS(content);
     msg.task = 'injectCSS';
     msg.data = JSON.stringify({fileName, content});
   }
@@ -28,5 +32,10 @@ function handleFileChange(file: string, content: string) {
     const livelyContainer = content.match(/<div id="lively-container"[\s\S]+<\/div>/)![0];
     msg.data = livelyContainer;
   }
-  msg.task && webSocket.sendMessage(msg as { task: string });
+  msg.task && sendMessage(msg as { task: string });
+}
+
+function minifyCSS(content: string) {
+  const regex = /(".*?"|'.*?')|;[\n\r\s]*(})|\s*[\n\r]+\s*|\s*([{}():,>~+])\s*|(calc\(.*\))|(\s*\/\*[\s\S]*?\*\/)/g;
+  return content.replace(regex, '$1$2$3$4');
 }
