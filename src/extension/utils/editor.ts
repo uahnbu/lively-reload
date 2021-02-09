@@ -12,7 +12,6 @@ export function editorOnChange(event: TextDocumentChangeEvent) {
   const file = event.document.fileName;
   if (!file.startsWith(root)) return;
   const content = event.document.getText();
-  console.log('to be handling');
   handleFileChange(file, content);
 }
 
