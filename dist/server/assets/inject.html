@@ -1,0 +1,53 @@
+<!-- Lively injected script -->
+<script src='https://cdn.jsdelivr.net/gh/fiduswriter/diffDOM@4.2.2/browser/diffDOM.js'></script>
+<script>
+!function() {
+  const ws = new WebSocket('ws://' + location.host + location.pathname);
+  ws.addEventListener('open', () => ws.send('connect'));
+  ws.addEventListener('message', ({data}) => {
+    const { type, data: msg } = JSON.parse(data);
+    if (type === 'string') handleMessage(msg);
+    else handleMessage(JSON.parse(msg));
+  });
+
+  const el = document.querySelector('#lively-container');
+  const newEl = document.createElement('div');
+  let oldContent = diffDOM.nodeToObj(el);
+
+  function handleMessage(msg) {
+    const { task, data } = msg;
+    task === 'reload' && location.reload();
+
+    if (task === 'injectCSS') {
+      const { fileName, content } = JSON.parse(data);
+      const id = '#lively-style-' + fileName;
+      const link = document.querySelector('link[href$="' + fileName + '.css"]');
+      if (link) {
+        const style = document.createElement('style');
+        style.id = id;
+        style.textContent = content;
+        document.head.removeChild(link);
+        document.head.appendChild(style);
+        return;
+      }
+      const style = document.querySelector('#\\' + id);
+      style.textContent = content;
+      return;
+    }
+
+    newEl.innerHTML = data;
+    
+    const newContent = newEl.innerHTML.replace(/&nbsp;/g, String.fromCharCode(0x00a0));
+    if (newContent !== data) return;
+
+    const dd = new diffDOM.DiffDOM;
+    const content = el.outerHTML.replace(/&nbsp;/g, String.fromCharCode(0x00a0));
+    const toAmendedHTML = dd.diff(content, newContent);
+    const toJSAlteration = dd.diff(oldContent, content);
+    dd.apply(el, toAmendedHTML);
+    oldContent = diffDOM.nodeToObj(el);
+    dd.apply(el, toJSAlteration);
+  }
+}();
+</script>
+<!-- End of injected script -->
