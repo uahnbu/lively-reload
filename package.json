@@ -31,11 +31,12 @@
           "maximum": 65535,
           "description": "A port to listen to the server"
         },
-        "lively-reload.dir": {
-          "type": "string",
-          "default": "dist/",
-          "pattern": ".*/$",
-          "description": "The folder to start the app"
+        "lively-reload.excluded": {
+          "type": "array",
+          "default": [
+            "node_modules"
+          ],
+          "description": "Ignored folders when scanning for default .html file"
         }
       }
     }

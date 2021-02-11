@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+iframe { position: absolute; left: 0; top: 0; width: 100%; height: 100%; border: none }
+</style>
+</head>
+<body>
+<script src='https://cdn.jsdelivr.net/gh/fiduswriter/diffDOM@4.2.2/browser/diffDOM.js'></script>
+<script>
+!function() {
+  const ws = new WebSocket('ws://' + location.host + location.pathname);
+  ws.events = {}, ws.on = (event, handler) => ws.events[event] = handler;
+  ws.addEventListener('open', () => ws.send('connect'));
+  ws.addEventListener('message', ({data: msg}) => {
+    const { task, data } = JSON.parse(msg);
+    ws.events[task] && ws.events[task](JSON.parse(data));
+  });
+
+  const documents = {};
+
+  ws.on('injectCSS', ({filePath, content}) => {
+    const id = '#lively-style-' + filePath;
+    Object.values(documents).forEach(iframeDoc => {
+      const link = iframeDoc.querySelector('link[href$="' + filePath + '.css"]');
+      if (link) {
+        const style = iframeDoc.createElement('style');
+        style.id = id;
+        style.textContent = content;
+        iframeDoc.head.removeChild(link);
+        iframeDoc.head.appendChild(style);
+        return;
+      }
+      const style = iframeDoc.querySelector('#\\' + id);
+      style && (style.textContent = content);
+    });
+  });
+
+  ws.on('editHTML', ({filePath, content}) => {
+    const iframeDoc = documents[filePath];
+    if (iframeDoc) injectHTML(filePath, content, iframeDoc);
+    else addHTML(filePath, content);
+  });
+
+  function editIframes(handler) {
+    [...document.querySelectorAll('iframe')].forEach(
+      ({contentDocument: document, contentWindow: window}) => handler({document, window})
+    );
+  }
+
+  function addHTML(filePath, srcDoc) {
+    const iframe = document.createElement('iframe');
+    document.body.appendChild(iframe);
+    iframe.srcdoc = srcDoc;
+    
+    const iframeDoc = documents[filePath] = iframe.contentDocument;
+    const container = iframeDoc.querySelector('#lively-container');
+    iframeDoc.oldContent = diffDOM.nodeToObj(container);
+  }
+
+  function injectHTML(filePath, srcDoc, iframeDoc) {
+    const el = iframeDoc.body.querySelector('#lively-container');
+    const content = el.outerHTML.replace(/&nbsp;/g, String.fromCharCode(0x00A0));
+    const newEl = document.createElement('div');
+    newEl.innerHTML = srcDoc;
+
+    const newContent = newEl.innerHTML.replace(/&nbsp;/g, String.fromCharCode(0x00A0));
+    if (newContent !== srcDoc) return;
+    console.log(content);
+    console.log(newContent);
+    
+    const dd = new diffDOM.DiffDOM;
+    const toAmendedHTML = dd.diff(srcDoc, newContent);
+    const toJSAlteration = dd.diff(iframeDoc.oldContent, srcDoc);
+    dd.apply(el, toAmendedHTML);
+    iframeDoc.oldContent = diffDOM.nodeToObj(el);
+    dd.apply(el, toJSAlteration);
+  }
+}();
+</script>
+</body>
+</html>
