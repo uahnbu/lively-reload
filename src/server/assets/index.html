@@ -2,79 +2,122 @@
 <html>
 <head>
 <style>
-iframe { position: absolute; left: 0; top: 0; width: 100%; height: 100%; border: none }
+iframe { position: absolute; left: 0; top: 0; width: 100%; height: 100%; border: none; opacity: 1; transition: opacity .5s }
+iframe.hidden { opacity: 0 }
 </style>
 </head>
 <body>
+<div id="initMessage">Establishing connection...</div>
 <script src='https://cdn.jsdelivr.net/gh/fiduswriter/diffDOM@4.2.2/browser/diffDOM.js'></script>
 <script>
 !function() {
+  const documents = {};
   const ws = new WebSocket('ws://' + location.host + location.pathname);
   ws.events = {}, ws.on = (event, handler) => ws.events[event] = handler;
-  ws.addEventListener('open', () => ws.send('connect'));
-  ws.addEventListener('message', ({data: msg}) => {
+  ws.addEventListener('open', () => (
+    document.body.removeChild(document.querySelector('#initMessage')),
+    ws.send('connect'))
+  );
+  ws.addEventListener('message', ({ data: msg }) => {
     const { task, data } = JSON.parse(msg);
     ws.events[task] && ws.events[task](JSON.parse(data));
   });
 
-  const documents = {};
-
-  ws.on('injectCSS', ({filePath, content}) => {
-    const id = '#lively-style-' + filePath;
-    Object.values(documents).forEach(iframeDoc => {
-      const link = iframeDoc.querySelector('link[href$="' + filePath + '.css"]');
+  ws.on('injectCSS', ({ fileRel, content }) => {
+    for (const htmlPath in documents) {
+      const id = 'lively-style-' + btoa(encodeURIComponent(fileRel)).replace(/[+/=]/g, '_');
+      const iframeDoc = documents[htmlPath];
+      const links = [...iframeDoc.querySelectorAll('link')];
+      const link = links.find(link => link.href.slice(link.baseURI.length) === fileRel);
       if (link) {
         const style = iframeDoc.createElement('style');
         style.id = id;
         style.textContent = content;
         iframeDoc.head.removeChild(link);
         iframeDoc.head.appendChild(style);
-        return;
+        continue;
       }
       const style = iframeDoc.querySelector('#\\' + id);
       style && (style.textContent = content);
-    });
+    }
   });
 
-  ws.on('editHTML', ({filePath, content}) => {
-    const iframeDoc = documents[filePath];
-    if (iframeDoc) injectHTML(filePath, content, iframeDoc);
-    else addHTML(filePath, content);
-  });
+  ws.on('switchHTML', ({ filePath, content }) => {
+    let iframeDoc = documents[filePath];
+    if (iframeDoc) { showIframe(iframeDoc); return }
 
-  function editIframes(handler) {
-    [...document.querySelectorAll('iframe')].forEach(
-      ({contentDocument: document, contentWindow: window}) => handler({document, window})
-    );
-  }
-
-  function addHTML(filePath, srcDoc) {
     const iframe = document.createElement('iframe');
     document.body.appendChild(iframe);
-    iframe.srcdoc = srcDoc;
-    
-    const iframeDoc = documents[filePath] = iframe.contentDocument;
-    const container = iframeDoc.querySelector('#lively-container');
-    iframeDoc.oldContent = diffDOM.nodeToObj(container);
+    iframeDoc = documents[filePath] = iframe.contentDocument;
+    showIframe(iframeDoc);
+
+    const headContent = (content.match(/(?<=<head>).*(?=<\/head>)/) || [''])[0];
+    if (!headContent) headContentLoaded();
+    else writeElement(iframeDoc.head, headContent, headContentLoaded);
+
+    function headContentLoaded() {
+      writeElement(iframeDoc.body, content.replace(/^.*<body>(.*)<\/body>.*$/, '$1'));
+      iframeDoc.oldDOM = diffDOM.nodeToObj(iframeDoc);
+    }
+  });
+
+  ws.on('editHTML', ({ filePath, content }) => {
+    const iframeDoc = documents[filePath];
+    if (!iframeDoc) return;
+    showIframe(iframeDoc);
+    content = content.replace(/^.*<html>(.*)<\/html>.*$/, '$1');
+
+    const newIframe = document.createElement('iframe');
+    newIframe.hidden = true;
+    document.body.appendChild(newIframe);
+
+    const newDoc = newIframe.contentDocument;
+    const headContent = (content.match(/(?<=<head>).*(?=<\/head>)/) || [''])[0];
+    if (!headContent) headContentLoaded();
+    else writeElement(newDoc.head, headContent, headContentLoaded);
+
+    function headContentLoaded() {
+      writeElement(newDoc.body, content.replace(/^.*<body>(.*)<\/body>.*$/, '$1'));
+
+      const newHTML = newDoc.documentElement;
+      const newContent = newHTML.innerHTML.replace(/&nbsp;/g, String.fromCharCode(0x00A0));
+      if (newContent !== content) { document.body.removeChild(newIframe); return }
+
+      const iframeDom = diffDOM.nodeToObj(iframeDoc);
+      const dd = new diffDOM.DiffDOM;
+      const toAmendedHTML = dd.diff(iframeDom, diffDOM.nodeToObj(newDoc));
+      const toJSAlteration = dd.diff(iframeDoc.oldDOM, iframeDom);
+      dd.apply(iframeDoc, toAmendedHTML);
+      iframeDoc.oldDOM = diffDOM.nodeToObj(iframeDoc);
+      dd.apply(iframeDoc, toJSAlteration);
+      document.body.removeChild(newIframe);
+    }
+  });
+
+  function writeElement(el, content, callback) {
+    el.innerHTML = content;
+
+    const scripts = [...el.querySelectorAll('script')];
+    scripts.length === 0 && callback && callback();
+
+    let loadedCount = 0;
+    scripts.forEach(oldScript => {
+      const script = el.ownerDocument.createElement('script');
+      let src = oldScript.src;
+      src.startsWith(location.href) && (src = src.slice(location.href.length));
+      script.src = src;
+      script.onload = () => ++loadedCount === scripts.length && callback && callback();
+      el.contains(oldScript) && el.removeChild(oldScript);
+      el.appendChild(script);
+    });
+
   }
 
-  function injectHTML(filePath, srcDoc, iframeDoc) {
-    const el = iframeDoc.body.querySelector('#lively-container');
-    const content = el.outerHTML.replace(/&nbsp;/g, String.fromCharCode(0x00A0));
-    const newEl = document.createElement('div');
-    newEl.innerHTML = srcDoc;
-
-    const newContent = newEl.innerHTML.replace(/&nbsp;/g, String.fromCharCode(0x00A0));
-    if (newContent !== srcDoc) return;
-    console.log(content);
-    console.log(newContent);
-    
-    const dd = new diffDOM.DiffDOM;
-    const toAmendedHTML = dd.diff(srcDoc, newContent);
-    const toJSAlteration = dd.diff(iframeDoc.oldContent, srcDoc);
-    dd.apply(el, toAmendedHTML);
-    iframeDoc.oldContent = diffDOM.nodeToObj(el);
-    dd.apply(el, toJSAlteration);
+  function showIframe(iframeDoc) {
+    const iframes = [...document.querySelectorAll('iframe')];
+    const iframe = iframes.find(iframe => iframe.contentDocument === iframeDoc);
+    iframes.forEach(iframe => iframe.classList.add('hidden'));
+    iframe.classList.remove('hidden');
   }
 }();
 </script>

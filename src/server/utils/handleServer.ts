@@ -4,10 +4,9 @@ import { Socket } from 'net';
 import { Express, static as staticDir } from 'express';
 import { join } from 'path';
 import { exec } from 'child_process';
-import { statusButton } from '../../extension';
-import { getRoot, getInitFile } from './getInitFile';
+import { getRoot, modifyHTML, statusButton } from '../../extension';
+import { getInitFile } from './getInitFile';
 import { setInitPong } from './websocket';
-import modifyHTML from './modifyHTML';
 
 const $configs = workspace.getConfiguration('lively-reload');
 
@@ -29,7 +28,7 @@ export function startServer() {
   $app.get('/', async (_req, res) => {
     const { filePath, content } = await getInitFile() || {};
     res.sendFile(join(__dirname, '../assets/index.html'), 'utf8');
-    content && setInitPong('editHTML', { filePath, content: modifyHTML(content) });
+    content && setInitPong('switchHTML', modifyHTML(content, filePath!));
   });
   root && $app.use(staticDir(root));
   

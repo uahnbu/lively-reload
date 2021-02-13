@@ -1,16 +1,12 @@
-import { window, workspace } from 'vscode'
+import { window } from 'vscode'
 import { join } from 'path';
 import { readdirSync, readFileSync, statSync } from 'fs';
-
-export function getRoot() { return workspace.workspaceFolders?.[0].uri.fsPath }
+import { getRoot } from '../../extension';
 
 export async function getInitFile(): Promise<{ filePath: string, content: string} | undefined> {
   const activeTab = window.activeTextEditor?.document;
   let filePath = activeTab?.fileName;
-  if (filePath && filePath.endsWith('.html')) {
-    return { filePath, content: activeTab!.getText() };
-  }
-  
+  if (filePath && filePath.endsWith('.html')) return { filePath, content: activeTab!.getText() };
   if (!getRoot()) { window.showErrorMessage('No active .html file or directory found.'); return }
 
   const htmlFiles = await scanForFileType(getRoot()!, '.html');
@@ -23,7 +19,7 @@ export async function getInitFile(): Promise<{ filePath: string, content: string
   if (!sortedHTMLFiles.length) { window.showErrorMessage('No .html file in current directory.'); return }
 
   filePath = sortedHTMLFiles[0];
-  return { filePath: sortedHTMLFiles[0], content: readFileSync(filePath, 'utf8') };
+  return { filePath, content: readFileSync(filePath, 'utf8') };
 }
 
 async function scanForFileType(dir: string, type: string) {

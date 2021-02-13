@@ -1,37 +1,61 @@
 import { TextDocument, TextDocumentChangeEvent, TextEditor, workspace } from 'vscode';
-import { isServerRunning, modifyHTML, sendMessage, getRoot } from '../../server';
+import { join } from 'path';
+import { isServerRunning, sendMessage } from '../../server';
 
-const changedFiles = new Map<string, string>();
+export function getRoot() { return workspace.workspaceFolders?.[0].uri.fsPath }
 
-export function activeFileOnChange(event: TextEditor | undefined) {
-  if (!event) return;
-}
-
-export function editorOnSave({fileName: filePath}: TextDocument) {
-  changedFiles.has(filePath) && changedFiles.delete(filePath);
-  sendMessage('reload');
+export function editorOnSave({ fileName: filePath }: TextDocument) {
+  sendMessage('reload', filePath);
 }
 
 export function editorOnChange({ contentChanges, document }: TextDocumentChangeEvent) {
-  if (!isServerRunning() || !contentChanges.length || !workspace.workspaceFolders) return;
-  const root = workspace.workspaceFolders[0].uri.fsPath;
-  if (!document.fileName.startsWith(root)) return;
-  handleFileChange(document.fileName, document.getText());
+  if (!isServerRunning() || !contentChanges.length) return;
+  handleFileChange(document.fileName, document.getText(), true);
 }
 
-function handleFileChange(filePath: string, content: string) {
+export function activeFileOnChange(event: TextEditor | undefined) {
+  if (!event || !isServerRunning()) return;
+  const document = event.document;
+  handleFileChange(document.fileName, document.getText(), false);
+}
+
+export function modifyHTML(html: string, filePath: string) {
+  html = html.replace(/(^|[\n\r]+)\s*|\s+$/g, '');
+  html = html.replace(/(?<= (href|src)=").+?(?=")/g, linkRel => {
+    const root = getRoot();
+    const linkPath = join(filePath, '..', linkRel);
+    if (!root || !linkPath.startsWith(root)) return linkRel;
+    return linkPath.slice(root.length + 1).replace(/\\/g, '/');
+  });
+  return { filePath, content: html };
+}
+
+function handleFileChange(filePath: string, content: string, isDirty = false) {
   if (filePath.endsWith('.css')) {
-    const fileRel = filePath.match(/(?<=\\)[^\\]+(?=\.[^.\\]+$)/)![0];
+    const root = getRoot();
+    if (!root || !filePath.startsWith(root)) return;
+
+    const fileRel = filePath.slice(root.length + 1).replace(/\\/g, '/');
     content = minifyCSS(content);
-    sendMessage('injectCSS', {fileRef: fileRel, content});
+    sendMessage('injectCSS', { fileRel, content });
   }
   if (filePath.endsWith('.html')) {
-    content = modifyHTML(content).match(/<div id="lively-container".+<\/div>/)![0]
-    sendMessage('editHTML', {filePath, content});
+    const msg = modifyHTML(content, filePath);
+    // if (!validateHTML(msg.content)) return;
+    sendMessage(isDirty ? 'editHTML' : 'switchHTML', msg);
   }
 }
 
 function minifyCSS(content: string) {
   const regex = /(".*?"|'.*?')|;[\n\r\s]*(})|\s*[\n\r]+\s*|\s*([{}():,>~+])\s*|(calc\(.*\))|(\s*\/\*[\s\S]*?\*\/)/g;
   return content.replace(regex, '$1$2$3$4');
+}
+
+function validateHTML(html: string) {
+  const regex = /<(.+?).*?>(.*?)<\/\1>|<(!doctype|area|base|br|col|embed|hr|img|input|link|meta|param|source|track|wbr).*?>/gi;
+  while (true) {
+    const replaced = html.replace(regex, '$2');
+    if (replaced.length === html.length) return !html.includes('<');
+    html = replaced;
+  }
 }

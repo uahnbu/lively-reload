@@ -14,6 +14,4 @@ server.on('connection', socket => (sockets.add(socket), socket.once('close', () 
 server.on('upgrade', (...args: [IncomingMessage, Socket, Buffer]) => handleConnection(...args));
 
 export { isServerRunning, startServer, closeServer } from './utils/handleServer';
-export { default as modifyHTML } from './utils/modifyHTML';
-export { getRoot } from './utils/getInitFile';
 export { sendMessage } from './utils/websocket';

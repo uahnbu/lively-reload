@@ -23,7 +23,7 @@ wsServer.on('connect', ws => (
 export function setInitPong(task: string, data?: any) { initMsg.task = task, initMsg.data = data }
 export function sendMessage(task: string, data?: any) {
   data = JSON.stringify(data);
-  webSockets.forEach(ws => ws.send(JSON.stringify({task, data})));
+  webSockets.forEach(ws => ws.send(JSON.stringify({ task, data })));
 }
 export function handleConnection(req: IncomingMessage, socket: Socket, head: Buffer) {
   wsServer.handleUpgrade(req, socket, head, ws => wsServer.emit('connect', ws));
