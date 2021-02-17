@@ -1,52 +1,50 @@
-import { Uri, window, workspace } from 'vscode';
+import { window } from 'vscode';
 import { Server } from 'http';
 import { Socket } from 'net';
 import { Express, static as staticDir } from 'express';
 import { join } from 'path';
-import { exec } from 'child_process';
-import { getRoot, modifyHTML, statusButton } from '../../extension';
-import { getInitFile } from './getInitFile';
-import { setInitPong } from './websocket';
+import { readFileSync } from 'fs';
+import { getConfig, getRoot, statusButton } from '../../extension';
+import { sendMessage } from './websocket';
 
-const $configs = workspace.getConfiguration('lively-reload');
+let app: Express;
+let server: Server;
+let sockets: Set<Socket>;
+let serverRunning = false;
 
-let $app: Express;
-let $server: Server;
-let $sockets: Set<Socket>;
-let $serverRunning = false;
-
-export function isServerRunning() { return $serverRunning }
-export function initServerHandler(app: Express, server: Server, sockets: Set<Socket>) {
-  $app = app, $server = server, $sockets = sockets;
+export function isServerRunning() { return serverRunning }
+export function initServerHandler(myApp: Express, myServer: Server, mySockets: Set<Socket>) {
+  app = myApp, server = myServer, sockets = mySockets;
 }
 
+export function reloadServer() { sendMessage('reloadFull') }
 export function startServer() {
-  const port = $configs.get('port');
-  const startMessage = 'Server started on 127.0.0.1:' + port + '.';
   const root = getRoot();
+  const port = getConfig('port');
+  const startMessage = 'Server started on http://127.0.0.1:' + port + '.';
   
-  $app.get('/', async (_req, res) => {
-    const { filePath, content } = await getInitFile() || {};
-    res.sendFile(join(__dirname, '../assets/index.html'), 'utf8');
-    content && setInitPong('switchHTML', modifyHTML(content, filePath!));
+  app.get('/', (_req, res) => {
+    const html = readFileSync(join(__dirname, '../assets/index.html'), 'utf8');
+    const script = '<script>' + readFileSync(join(__dirname, '../assets/index.js'), 'utf8') + '</script>';
+    res.send(addAtIndex(html, script, html.indexOf('</body>')));
   });
-  root && $app.use(staticDir(root));
+  root && app.use(staticDir(root));
   
-  $server.listen(port, () => window.showInformationMessage(startMessage, { title: 'Dismiss' }));
-  $serverRunning = true;
+  server.listen(port, () => window.showInformationMessage(startMessage, { title: 'Dismiss' }));
+  serverRunning = true;
 
   // openUrl('http://127.0.0.1:' + port);
   statusButton.setLoading();
 }
 
 export function closeServer() {
-  $server.close();
-  $sockets.forEach(socket => socket.destroy());
-  $serverRunning = false;
+  sendMessage('disconnect');
+  server.close();
+  sockets.forEach(socket => socket.destroy());
+  serverRunning = false;
   statusButton.setDoStart();
 }
 
-function openUrl(url: string) {
-  const cmd = { darwin: 'open', win32: 'start' }[process.platform as 'darwin' | 'win32'] || 'xdg-open';
-  return exec(cmd + ' ' + Uri.parse(url.replace(/"/g, '\\"')));
+function addAtIndex(str: string, substr: string, index: number) {
+  return str.slice(0, index) + substr + str.slice(index);
 }

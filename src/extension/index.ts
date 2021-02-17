@@ -1,33 +1,36 @@
-import { ExtensionContext, window, workspace } from 'vscode';
-import { editorOnChange, editorOnSave, activeFileOnChange } from './utils/handleEditor';
-import { subscribe } from './utils/subscriptions';
+import { ExtensionContext, commands } from 'vscode';
+import { startServer, closeServer, reloadServer } from '../server';
 import statusButton from './utils/statusButton';
 
-export { START_COMMAND, CLOSE_COMMAND } from './utils/subscriptions';
-export { getRoot, modifyHTML } from './utils/handleEditor';
 export { statusButton };
+
+export { getRoot, getConfig, getActiveFile } from './utils/commands';
+
+export const START_COMMAND = 'lively-reload.startLively';
+export const CLOSE_COMMAND = 'lively-reload.closeLively';
+
+const RELOAD_COMMAND = 'lively-reload.reloadLively';
 
 export function activate(context: ExtensionContext) {
 	statusButton.load();
-	workspace.onDidChangeTextDocument(editorOnChange);
-	workspace.onDidSaveTextDocument(editorOnSave);
-	window.onDidChangeActiveTextEditor(activeFileOnChange);
-	subscribe(context);
+	const subscriptions = [
+		commands.registerCommand(START_COMMAND, () => startServer()),
+		commands.registerCommand(CLOSE_COMMAND, () => closeServer()),
+		commands.registerCommand(RELOAD_COMMAND, () => reloadServer())
+	];
+	context.subscriptions.push(...subscriptions);
 }
 
 `╭───────╮
  │   *   │
  ╰───────╯`
 
-// TODO: Read configs from package.json
-// TODO: Validate HTML before send
+// TODO: Add configs for typescript (target, module)
+// TODO: Add error msg for each compiler; Add info msg when no root
  
-// DONE: If activeHTML, serve, else if index.html, serve, else show error
+// DONE: Read configs from package.json
 // DONE: Read changed content instead of file
 // DONE: Add badge for current file, serve another file on change
-// DONE: Maybe move modifyHTML to extension/utils
-// DONE: Rename contentdocument, documentelement, etc.
-// DONE: Restructure code: classes -> objects/functions, add $ prefix for private variables
 // DONE: Watch multiple websockets
 // DONE: Listen to file change only when server started
 // DONE: Multiple workspaceFolders check

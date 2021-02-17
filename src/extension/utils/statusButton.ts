@@ -1,27 +1,27 @@
 import { window, StatusBarAlignment } from 'vscode';
-import { START_COMMAND, CLOSE_COMMAND } from './subscriptions';
+import { START_COMMAND, CLOSE_COMMAND } from '..';
 
-const $button = window.createStatusBarItem(StatusBarAlignment.Left);
+const button = window.createStatusBarItem(StatusBarAlignment.Left);
 
 let timer: NodeJS.Timeout;
 let loadingStage: number;
 
 const statusButton = {
-  load() { this.setDoStart(); $button.show() },
+  load() { this.setDoStart(); button.show() },
   setDoStart() {
-    $button.text = '$(smiley) Lively Reload';
-    $button.tooltip = 'Click to start lively server';
-    $button.command = START_COMMAND;
+    button.text = '$(smiley) Lively Reload';
+    button.tooltip = 'Click to start lively server';
+    button.command = START_COMMAND;
     clearInterval(timer);
   },
   setLoading() {
     loadingStage = 0;
     timer = setInterval(animateLoading, 300);
-    $button.tooltip = 'Click to close lively server';
-    $button.command = CLOSE_COMMAND;
+    button.tooltip = 'Click to close lively server';
+    button.command = CLOSE_COMMAND;
   },
   setDoClose() {
-    $button.text = '$(pass) Lively Reload';
+    button.text = '$(pass) Lively Reload';
     loadingStage = -1;
     clearInterval(timer);
   },
@@ -32,7 +32,7 @@ export default statusButton;
 function animateLoading() {
   const content = '$(smiley) Lively Reload ';
   const decoration = ['··.', '·..', '..·', '.··', '···', '···'];
-  $button.text = content + decoration[loadingStage];
+  button.text = content + decoration[loadingStage];
   ++loadingStage === 6 && (loadingStage = 0);
 }
 
