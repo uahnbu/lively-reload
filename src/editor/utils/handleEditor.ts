@@ -11,11 +11,8 @@ export function editorOnSave({ fileName: filePath, getText }: TextDocument) {
   switch (extname(filePath).toLowerCase()) {
     case '.js': sendMessage('reloadJS', filePath.slice(root.length + 1).replace(/\\/g, '/')); break;
     case '.pug': exportPug(filePath, getText()); break;
-    case '.scss':
-    case '.sass':
-      exportSass(filePath, getText()); break;
-    case '.ts':
-      exportTs(filePath, getText());
+    case '.ts': exportTs(filePath, getText()); break;
+    case '.scss': case '.sass': exportSass(filePath, getText());
   }
 }
 

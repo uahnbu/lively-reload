@@ -6,6 +6,7 @@ import { isServerRunning } from './handleServer';
 
 const wsServer = new Server({ noServer: true });
 const webSockets = new Set<any>();
+let heartBeat: NodeJS.Timeout;
 
 wsServer.on('connect', ws => (
   ws.on('message', (msg: string) => {
@@ -22,6 +23,8 @@ wsServer.on('connect', ws => (
   ))
 ));
 
+export function resurrect() { heartBeat = setInterval(() => sendMessage('alive'), 300) }
+export function killHeart() { clearInterval(heartBeat) }
 export function sendMessage(task: string, data: any = null) {
   data = JSON.stringify(data);
   webSockets.forEach(ws => ws.send(JSON.stringify({ task, data })));

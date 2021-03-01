@@ -6,10 +6,10 @@ export { statusButton };
 
 export { getRoot, getConfig, getActiveFile } from './utils/commands';
 
-export const START_COMMAND = 'lively-reload.startLively';
-export const CLOSE_COMMAND = 'lively-reload.closeLively';
+export const START_COMMAND = 'livelyReload.startLively';
+export const CLOSE_COMMAND = 'livelyReload.closeLively';
 
-const RELOAD_COMMAND = 'lively-reload.reloadLively';
+const RELOAD_COMMAND = 'livelyReload.reloadLively';
 
 export function activate(context: ExtensionContext) {
 	statusButton.load();
@@ -37,4 +37,4 @@ export function activate(context: ExtensionContext) {
 
 // FIXME: 1st typed char of div not rendered since DiffDOM can't identify corresponding div --> type 2 chars + Backspace
 // FIXME: Iframe sometimes doesn't load
-// FIXME: Server letting unused for a long time generates errors
+// FIXME: Server letting unused for a long time generates errors (Failed to load message bundle for file /index)

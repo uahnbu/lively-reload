@@ -13,51 +13,52 @@
   "contributes": {
     "commands": [
       {
-        "command": "lively-reload.startLively",
+        "command": "livelyReload.startLively",
         "title": "Go Lively"
       },
       {
-        "command": "lively-reload.closeLively",
+        "command": "livelyReload.closeLively",
         "title": "Quit Lively"
       },
       {
-        "command": "lively-reload.reloadLively",
+        "command": "livelyReload.reloadLively",
         "title": "Reload Lively"
       }
     ],
     "configuration": {
       "title": "Lively Reload",
       "properties": {
-        "lively-reload.port": {
+        "livelyReload.port": {
           "type": "number",
           "default": "2020",
           "minimum": 0,
           "maximum": 65535,
-          "description": "A port to listen to the server"
+          "description": "A port to listen to the server."
         },
-        "lively-reload.pug-options": {
+        "livelyReload.pugOptions": {
+          "type": "object",
+          "default": {
+            "outdir": "dist",
+            "maxLoop": 99,
+            "pretty": true
+          },
+          "description": "Configurations for exported .pug files.\n\nSet \"outdir\" to null to disable exporting .pug files on save.\n(the .pug content will still be servable to the live preview)"
+        },
+        "livelyReload.sassOptions": {
           "type": "object",
           "default": {
             "outdir": "dist",
             "pretty": true
           },
-          "description": "Configurations for exported .pug files"
+          "description": "Configurations for exported .scss/.sass files.\n\nSet \"outdir\" to null to disable exporting .scss/.sass files on save.\n(the .scss/.sass content will still be servable to the live preview)"
         },
-        "lively-reload.sass-options": {
+        "livelyReload.typescriptOptions": {
           "type": "object",
           "default": {
             "outdir": "dist",
             "pretty": true
           },
-          "description": "Configurations for exported .sass files"
-        },
-        "lively-reload.ts-options": {
-          "type": "object",
-          "default": {
-            "outdir": "dist",
-            "pretty": true
-          },
-          "description": "Configurations for exported .ts files"
+          "description": "Configurations for exported .ts files.\n\nSet \"outdir\" to null to disable exporting .ts files on save.\n(When set to null, the .js files won't be updated, but the preview will still automatically reload.)"
         }
       }
     }

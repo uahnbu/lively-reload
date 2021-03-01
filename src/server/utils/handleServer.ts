@@ -5,7 +5,7 @@ import { Express, static as staticDir } from 'express';
 import { join } from 'path';
 import { readFileSync } from 'fs';
 import { getConfig, getRoot, statusButton } from '../../extension';
-import { sendMessage } from './websocket';
+import { sendMessage, resurrect, killHeart } from './websocket';
 
 let app: Express;
 let server: Server;
@@ -34,11 +34,12 @@ export function startServer() {
   serverRunning = true;
 
   // openUrl('http://127.0.0.1:' + port);
+  resurrect();
   statusButton.setLoading();
 }
 
 export function closeServer() {
-  sendMessage('disconnect');
+  killHeart();
   server.close();
   sockets.forEach(socket => socket.destroy());
   serverRunning = false;

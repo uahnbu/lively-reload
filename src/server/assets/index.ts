@@ -5,17 +5,47 @@ interface WebSocket {
 
 interface IframeDoc extends Document {
   iframe: HTMLIFrameElement
-  oldDOM: {}
+  oldDOM: DiffDOMNode
 }
 
-declare const diffDOM: any;
+interface DiffDOMNode {
+  nodeName: string
+  data?: string
+  childNodes?: DiffDOMNode[],
+  hasMarked?: boolean,
+  oldData?: DiffDOMNode
+}
 
+interface DiffDOMDiff {
+  action: string,
+  route: number[],
+  name?: string,
+  value?: string,
+  oldValue?: DiffDOMNode,
+  newValue?: DiffDOMNode,
+  element?: DiffDOMNode,
+}
+
+interface DiffDomConstructor {
+  diff(node1: HTMLElement | DiffDOMNode, node2: HTMLElement | DiffDOMNode): DiffDOMDiff[]
+  apply(node: HTMLElement | DiffDOMNode, diff: DiffDOMDiff[]): boolean
+  new(): DiffDomConstructor
+}
+
+interface DiffDOMObject {
+  nodeToObj(node: HTMLElement): DiffDOMNode
+  DiffDOM: DiffDomConstructor
+}
+
+declare const diffDOM: DiffDOMObject
+
+const documents: { [key: string]: IframeDoc } = {};
 void function() {
   const fileMessage = document.querySelector('#fileMessage') as HTMLElement;
-  const documents: { [key: string]: IframeDoc } = {};
   const dirtyLinks: { [key: string]: string } = {};
   const dd = new diffDOM.DiffDOM;
   const ws = new WebSocket('ws://' + location.host + location.pathname);
+  let heartBeat: NodeJS.Timeout;
   ws.events = {}, ws.on = (event, handler) => ws.events[event] = handler;
   ws.addEventListener('message', ({ data: msg }) => {
     const { task, data } = JSON.parse(msg);
@@ -25,10 +55,9 @@ void function() {
     document.querySelector('#initMessage')!.textContent = (
       'Connection established. Open a .html/.pug file to begin.'
     ),
-    ws.send('connect'))
-  );
+    ws.send('connect')
+  ));
 
-  ws.on('disconnect', () => showMessage('Server disconnected.', 'warn', 'show'));
   ws.on('reloadFull', () => location.reload());
   ws.on('reloadJS', (fileRel: string) => {
     for (const htmlPath in documents) {
@@ -67,6 +96,7 @@ void function() {
     writeStyle(newDoc.head);
     diffIframe(iframeDoc, newHTML);
   });
+  ws.on('alive', () => (clearTimeout(heartBeat), heartBeat = setTimeout(setDead, 500)));
  
   async function createIframe(filePath: string, content: string) {
     const iframe = document.createElement('iframe');
@@ -90,8 +120,10 @@ void function() {
   function showIframe(iframeDoc: IframeDoc) {
     const iframes = [...document.querySelectorAll('iframe')];
     const docIframe = iframeDoc.iframe;
-    iframes.forEach(iframe => iframe !== docIframe && iframe.classList.add('hidden'));
-    docIframe.classList.remove('hidden');
+    iframes.forEach(iframe => iframe !== docIframe && (
+      iframe.animate({ opacity: 0, zIndex: 0 }, { duration: 500, fill: 'forwards' })
+    ));
+    docIframe.animate({ opacity: 1, zIndex: 1 }, { duration: 500, fill: 'forwards' });
   }
 
   function writeStyle(el: HTMLElement, fileRel?: string, content?: string) {
@@ -104,7 +136,7 @@ void function() {
         link.href.slice(location.href.length) === fileRel
       ));
       if (!links.length) {
-        const style = el.querySelector('#\\' + id);
+        const style = el.querySelector('#' + id);
         style && (style.textContent = content!);
         return;
       }
@@ -130,9 +162,9 @@ void function() {
     const scripts = [...el.querySelectorAll('script')];
     await Promise.all(scripts.map(oldScript => new Promise((resolve, reject) => {
       const script = el.ownerDocument.createElement('script');
-      let src = oldScript.src;
-      src.startsWith(location.href) && (src = src.slice(location.href.length));
-      script.src = src;
+      const { src, textContent } = oldScript;
+      src && (script.src = src.startsWith(location.href) && src.slice(location.href.length) || src);
+      script.textContent = textContent;
       script.onload = resolve;
       script.onerror = reject;
       el.removeChild(oldScript);
@@ -142,13 +174,71 @@ void function() {
 
   function diffIframe(iframeDoc: IframeDoc, newHTML: HTMLElement) {
     const el = iframeDoc.documentElement;
-    const dom = diffDOM.nodeToObj(el);
-    const newDOM = diffDOM.nodeToObj(newHTML);
-    const toAmendedHTML = dd.diff(dom, newDOM);
-    const toJSAlteration = dd.diff(iframeDoc.oldDOM, dom);
+    const dom = replaceIgnoredDOM(diffDOM.nodeToObj(el));
+    const oldDOM = replaceIgnoredDOM(iframeDoc.oldDOM);
+    const newDOM = replaceIgnoredDOM(diffDOM.nodeToObj(newHTML));
+
+    const reJSAlteration = filterDiff(dd.diff(dom, oldDOM));
+    const toJSAlteration = filterDiff(dd.diff(oldDOM, dom));
+    const toAmendedHTML = filterDiff(dd.diff(oldDOM, newDOM));
+    dd.apply(el, reJSAlteration);
     dd.apply(el, toAmendedHTML);
-    iframeDoc.oldDOM = diffDOM.nodeToObj(el);
     dd.apply(el, toJSAlteration);
+    iframeDoc.oldDOM = diffDOM.nodeToObj(newHTML);
+
+    function filterDiff(diffs: DiffDOMDiff[]) {
+      return diffs
+        .filter(({ element, newValue }) => !(
+          element?.nodeName === '#none' ||
+          newValue?.nodeName === '#none'
+        ))
+        .filter(({ element }) => !element || !diffs.some(({ element: otherEl }) => (
+          otherEl !== element && otherEl?.oldData &&
+          otherEl.oldData.nodeName === element.nodeName &&
+          dd.diff(otherEl.oldData, element!).length === 0
+        )));
+    }
+  }
+
+  function replaceIgnoredDOM(root: DiffDOMNode) {
+    root = keepOrReplaceDOM(root);
+    if (root.nodeName === '#none') return root.oldData as DiffDOMNode;
+    return root;
+  
+    function isMarkedDOM(root: DiffDOMNode): boolean {
+      if (
+        root.nodeName === '#comment' &&
+        root.data!.toLowerCase().trimEnd().endsWith('lively-container>')
+      ) return true;
+      if (typeof root.hasMarked !== 'undefined') return root.hasMarked;
+      return (
+        root.childNodes as unknown as boolean &&
+        (root.hasMarked = root.childNodes!.some(child => isMarkedDOM(child))
+      ));
+    }
+
+    function keepOrReplaceDOM(root: DiffDOMNode) {
+      if (!isMarkedDOM(root)) return { nodeName: '#none', oldData: root };
+      const hood = root.childNodes!;
+      const boxLeft = findBox('left');
+      const boxRight = findBox('right');
+      if (boxLeft === -1 && boxRight === -1) {
+        hood.forEach((_, i) => hood[i] = keepOrReplaceDOM(hood[i]));
+        return root;
+      }
+      for (let i = 0; i < boxLeft; i++) { hood[i] = keepOrReplaceDOM(hood[i]) }
+      if (boxRight !== -1) {
+        for (let i = boxRight + 1; i < hood.length; i++) { hood[i] = keepOrReplaceDOM(hood[i]) }
+      }
+      return root;
+  
+      function findBox(end: 'left' | 'right') {
+        return hood!.findIndex(({ nodeName, data }) => (
+          nodeName === '#comment' &&
+          data!.toLowerCase().trim() === '<' + (end === 'left' ? '' : '/') + 'lively-container>'
+        ));
+      }
+    }
   }
 
   function extractContent(htmlContent: string, part: 'html' | 'body' | 'head'): string {
@@ -185,8 +275,10 @@ void function() {
     fileMessage.classList.remove('info', 'warn');
     fileMessage.classList.add(type);
     fileMessage.animate(
-      animSet[anim].map(val => ({ opacity: val })),
+      animSet[anim].map(val => ({ opacity: val, zIndex: val * 99 })),
       { duration: (animSet[anim].length - 1) * 500, fill: 'forwards' }
     );
   }
+
+  function setDead() { showMessage('Server disconnected.', 'warn', 'show') }
 }();
