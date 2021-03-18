@@ -1,14 +1,25 @@
 # Lively Reload
 ## Features
-**Live preview of your `.html`, `.css` files without the need to save.**
+* **Live preview of your `.html`, `.css` files without the need to save.**
+* **The preview will reload when you save `.js` files.**
+* **`.pug`, `.scss`, `.sass`, `.ts` files are also support.**
+* **2 container tags for wrapping editable contents are provided.**
 
-**The preview will reload when you save `.js` files.**
+  ```html
+  <!-- <lively-container> -->
+  editable contents
+  <!-- </lively-container> -->
+  ```
+  The tags can be attained by typing `<lively-container>` then pressing `Ctrl`+`/` to turn it into a comment. (so as not to affect your code flow)
 
-**`.pug`, `.scss`, `.sass`, `.ts` files are also support.**
+  They are useful when working with libraries which inject its own code into the DOM like *Aframe*. In other cases, however, directly commenting out code is more advisable.
+
+  If either tag is omitted, the editable contents will start/end at the first/last element of the same indentation level.
 ## Notes
-* Previous active files are still displaying in the background. Therefore if you suffer from a decrease in performance, call for a hard reload through `Ctrl`+`Shift`+`P` → `> livelyReload.reloadLively`.
+* Use double-quote `"` for `html` tags' attributes.
+* Previous active files are still displaying in the background. Therefore if you suffer from a decrease in performance, call for a hard reload through `Ctrl`+`Shift`+`P` → `>livelyReload.reloadLively`.
 * Only the first workspace is support in a multi-workspace environment, since identification of the active workspace is not an option.
-* For some projects using heavy-loading libraries like Aframe, Lively Reload won't work since those libraries doesn't have a callback for when they're loaded.
+* Moving container tags (`Alt`+`Up/Down` by default) will cause error. Instead, remove the tag first, or better, call a hard reload.
 ## Settings
 * **`livelyReload.port`**: A port to listen to the server.
   * Default value is `2020`.

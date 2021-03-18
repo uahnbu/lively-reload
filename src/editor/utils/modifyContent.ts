@@ -11,7 +11,6 @@ export function modifyHTML(filePath: string, content: string) {
     const { outdir, maxLoop } = getConfig('pugOptions');
     dist = join(root, outdir);
     content = content.replace(/^(\s*while.*)$/gm, '-var _sAfeVar=0;\n$1&&_sAfeVar++<' + maxLoop);
-    console.log(content);
     content = render(content).replace(/\/>/g, '>');
   } else content = content.replace(/(^|[\n\r]+)\s*|\s+$/g, '');
 

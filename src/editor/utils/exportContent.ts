@@ -5,6 +5,7 @@ import { getConfig, getRoot } from "../../extension";
 import { renderSync as renderSass } from "sass";
 import { transpile as renderTs } from 'typescript';
 import { sendMessage } from "../../server";
+import { modifyCSS } from "./modifyContent";
 
 export function exportPug(filePath: string, content: string) {
   const { pretty, outdir } = getConfig('pugOptions');
@@ -16,11 +17,11 @@ export function exportPug(filePath: string, content: string) {
 }
 
 export function exportSass(filePath: string, content: string) {
+  sendMessage('injectCSS', modifyCSS(filePath, content));
   const { pretty, outdir } = getConfig('sassOptions');
   if (outdir === null) return;
   const target = getTarget(filePath, outdir);
   if (!target) return;
-
   content = renderSass({
     data: content,
     indentedSyntax: extname(filePath).toLowerCase() === '.sass',

@@ -1,46 +1,9 @@
-interface WebSocket {
-  events: { [task: string]: (data: any) => void }
-  on: (event: any, handler: any) => {}
-}
-
-interface IframeDoc extends Document {
-  iframe: HTMLIFrameElement
-  oldDOM: DiffDOMNode
-}
-
-interface DiffDOMNode {
-  nodeName: string
-  data?: string
-  childNodes?: DiffDOMNode[],
-  hasMarked?: boolean,
-  oldData?: DiffDOMNode
-}
-
-interface DiffDOMDiff {
-  action: string,
-  route: number[],
-  name?: string,
-  value?: string,
-  oldValue?: DiffDOMNode,
-  newValue?: DiffDOMNode,
-  element?: DiffDOMNode,
-}
-
-interface DiffDomConstructor {
-  diff(node1: HTMLElement | DiffDOMNode, node2: HTMLElement | DiffDOMNode): DiffDOMDiff[]
-  apply(node: HTMLElement | DiffDOMNode, diff: DiffDOMDiff[]): boolean
-  new(): DiffDomConstructor
-}
-
-interface DiffDOMObject {
-  nodeToObj(node: HTMLElement): DiffDOMNode
-  DiffDOM: DiffDomConstructor
-}
+/// <reference path="index.d.ts" />
 
 declare const diffDOM: DiffDOMObject
 
-const documents: { [key: string]: IframeDoc } = {};
 void function() {
+  const documents: { [key: string]: IframeDoc } = {};
   const fileMessage = document.querySelector('#fileMessage') as HTMLElement;
   const dirtyLinks: { [key: string]: string } = {};
   const dd = new diffDOM.DiffDOM;
@@ -66,17 +29,13 @@ void function() {
         script.src.startsWith(location.href) &&
         script.src.slice(location.href.length) === fileRel
       ));
-      script && (
-        document.body.removeChild(iframeDoc.iframe),
-        createIframe(htmlPath, iframeDoc.documentElement.innerHTML)
-      );
+      if (!script) continue;
+      document.body.removeChild(iframeDoc.iframe);
+      createIframe(htmlPath, iframeDoc.oldHTML);
     }
   });
   ws.on('injectCSS', ({ fileRel, content }: { fileRel: string, content: string }) => {
-    for (const htmlPath in documents) {
-      const iframeDoc = documents[htmlPath];
-      writeStyle(iframeDoc.head, fileRel, content);
-    }
+    for (const htmlPath in documents) { writeStyle(documents[htmlPath].head, fileRel, content) }
   });
   ws.on('switchHTML', ({ filePath, content }: { filePath: string, content: string }) => {
     const initMessage = document.querySelector('#initMessage');
@@ -89,12 +48,16 @@ void function() {
     const iframeDoc = documents[filePath];
     const newDoc = document.implementation.createHTMLDocument();
     const newHTML = newDoc.documentElement;
-    newHTML.innerHTML = content = extractContent(content, 'html');
+    newHTML.innerHTML = content = modifyHTML(extractContent(content, 'html'));
     
-    const testHTML = newHTML.innerHTML.replace(/&nbsp;/g, String.fromCharCode(0x00A0));
+    const testHTML = modifyHTML(newHTML.innerHTML);
     if (testHTML !== content) return;
     writeStyle(newDoc.head);
     diffIframe(iframeDoc, newHTML);
+
+    function modifyHTML(html: string) {
+      return html.replace(/&nbsp;/g, String.fromCharCode(0x00A0)).replace(/=""/g, '');
+    }
   });
   ws.on('alive', () => (clearTimeout(heartBeat), heartBeat = setTimeout(setDead, 500)));
  
@@ -113,6 +76,7 @@ void function() {
       await activateScripts(iframeDoc.head);
     }
     iframeDoc.body.innerHTML = extractContent(content, 'body');
+    iframeDoc.oldHTML = iframeDoc.documentElement.outerHTML;
     iframeDoc.oldDOM = diffDOM.nodeToObj(iframeDoc.documentElement);
     activateScripts(iframeDoc.body);
   }
@@ -174,70 +138,87 @@ void function() {
 
   function diffIframe(iframeDoc: IframeDoc, newHTML: HTMLElement) {
     const el = iframeDoc.documentElement;
-    const dom = replaceIgnoredDOM(diffDOM.nodeToObj(el));
-    const oldDOM = replaceIgnoredDOM(iframeDoc.oldDOM);
-    const newDOM = replaceIgnoredDOM(diffDOM.nodeToObj(newHTML));
-
-    const reJSAlteration = filterDiff(dd.diff(dom, oldDOM));
-    const toJSAlteration = filterDiff(dd.diff(oldDOM, dom));
-    const toAmendedHTML = filterDiff(dd.diff(oldDOM, newDOM));
-    dd.apply(el, reJSAlteration);
+    const dom = diffDOM.nodeToObj(el);
+    const oldDOM = iframeDoc.oldDOM;
+    const newDOM = diffDOM.nodeToObj(newHTML);
+    const toAmendedHTML = filterDiff(dd.diff(dom, newDOM), dom);
+    const toJSAlteration = filterDiff(dd.diff(oldDOM, dom), oldDOM);
     dd.apply(el, toAmendedHTML);
     dd.apply(el, toJSAlteration);
-    iframeDoc.oldDOM = diffDOM.nodeToObj(newHTML);
-
-    function filterDiff(diffs: DiffDOMDiff[]) {
-      return diffs
-        .filter(({ element, newValue }) => !(
-          element?.nodeName === '#none' ||
-          newValue?.nodeName === '#none'
-        ))
-        .filter(({ element }) => !element || !diffs.some(({ element: otherEl }) => (
-          otherEl !== element && otherEl?.oldData &&
-          otherEl.oldData.nodeName === element.nodeName &&
-          dd.diff(otherEl.oldData, element!).length === 0
-        )));
-    }
+    iframeDoc.oldDOM = newDOM;
   }
 
-  function replaceIgnoredDOM(root: DiffDOMNode) {
-    root = keepOrReplaceDOM(root);
-    if (root.nodeName === '#none') return root.oldData as DiffDOMNode;
-    return root;
-  
-    function isMarkedDOM(root: DiffDOMNode): boolean {
-      if (
-        root.nodeName === '#comment' &&
-        root.data!.toLowerCase().trimEnd().endsWith('lively-container>')
-      ) return true;
-      if (typeof root.hasMarked !== 'undefined') return root.hasMarked;
-      return (
-        root.childNodes as unknown as boolean &&
-        (root.hasMarked = root.childNodes!.some(child => isMarkedDOM(child))
-      ));
+  function filterDiff(diffs: DiffDOMDiff[], dom: DiffDOMNode) {
+    const markedRoutes = getMarkedRoutes(dom);
+    if (markedRoutes.length === 0) return diffs;
+    diffs.forEach(({ action, route, element }) => {
+      if (action !== 'removeElement' || element?.nodeName !== '#comment') return;
+      const data = element.data!.trim().toLowerCase();
+      if (!data.endsWith('lively-container>')) return;
+      addRoute(markedRoutes, route, data.includes('/'));
+    });
+    if (markedRoutes.every(({ start, end }) => start === -1 && end === 1/0)) return diffs;
+    return diffs.filter(({ action, route }) => isMarkedDiff(action, route, markedRoutes));
+  }
+
+  function isMarkedDiff(action: string, route: number[], markedRoutes: MarkedRoute[]) {
+    action === 'addElement' && shiftRoute(markedRoutes, route, 1);
+    action === 'removeElement' && shiftRoute(markedRoutes, route, -1);
+    return markedRoutes.some(({ route: markedRoute, start, end }) => (
+      markedRoute.length <= route.length - 1 &&
+      markedRoute.every((path, i) => path === route[i]) &&
+      route[markedRoute.length] >= start &&
+      route[markedRoute.length] <= end
+    ));
+  }
+
+  function addRoute(markedRoutes: MarkedRoute[], route: number[], isEnd: boolean) {
+    const pathData = markedRoutes.find(({ route: markedRoute }) => (
+      markedRoute.length === route.length - 1 &&
+      markedRoute.every((path, i) => path === route[i])
+    ));
+    if (pathData) { if (isEnd) pathData.end = 1/0; else pathData.start = -1; return }
+    markedRoutes.push({
+      route: route.slice(0, -1),
+      start: isEnd ? -1 : route[route.length - 1],
+      end: isEnd ? route[route.length - 1] : 1/0
+    });
+  }
+
+  function shiftRoute(markedRoutes: MarkedRoute[], route: number[], direction: 1 | -1) {
+    markedRoutes.forEach(pathData => {
+      if (pathData.route.length !== route.length - 1) return;
+      if (pathData.route.some((path, i) => path !== route[i])) return;
+      if (route[route.length - 1] > pathData.start) return;
+      pathData.start += direction, pathData.end += direction;
+    });
+  }
+
+  function getMarkedRoutes(root: DiffDOMNode): MarkedRoute[] {
+    const markedRoutes: { route: number[], start: number, end: number }[] = [];
+    scanNodes(root, []);
+    return markedRoutes;
+
+    function scanNodes(node: DiffDOMNode, route: number[]) {
+      const hood = node.childNodes;
+      if (!hood) return root;
+      const boxLeft = findBox(hood, 'left');
+      const boxRight = findBox(hood, 'right');
+      if (boxLeft === -1 && boxRight === -1) {
+        hood.forEach((node, i) => scanNodes(node, route.concat(i)));
+        return;
+      }
+      for (let i = 0; i < boxLeft; i++) { scanNodes(hood[i], route.concat(i)) }
+      if (boxRight === -1) { markedRoutes.push({ route, start: boxLeft, end: 1/0 }); return }
+      for (let i = boxRight + 1; i < hood.length; i++) { scanNodes(hood[i], route.concat(i)) }
+      markedRoutes.push({ route, start: boxLeft, end: boxRight });
     }
 
-    function keepOrReplaceDOM(root: DiffDOMNode) {
-      if (!isMarkedDOM(root)) return { nodeName: '#none', oldData: root };
-      const hood = root.childNodes!;
-      const boxLeft = findBox('left');
-      const boxRight = findBox('right');
-      if (boxLeft === -1 && boxRight === -1) {
-        hood.forEach((_, i) => hood[i] = keepOrReplaceDOM(hood[i]));
-        return root;
-      }
-      for (let i = 0; i < boxLeft; i++) { hood[i] = keepOrReplaceDOM(hood[i]) }
-      if (boxRight !== -1) {
-        for (let i = boxRight + 1; i < hood.length; i++) { hood[i] = keepOrReplaceDOM(hood[i]) }
-      }
-      return root;
-  
-      function findBox(end: 'left' | 'right') {
-        return hood!.findIndex(({ nodeName, data }) => (
-          nodeName === '#comment' &&
-          data!.toLowerCase().trim() === '<' + (end === 'left' ? '' : '/') + 'lively-container>'
-        ));
-      }
+    function findBox(hood: DiffDOMNode[], end: 'left' | 'right') {
+      return hood.findIndex(({ nodeName, data }) => (
+        nodeName === '#comment' &&
+        data!.toLowerCase().trim() === '<' + (end === 'left' ? '' : '/') + 'lively-container>'
+      ));
     }
   }
 
@@ -246,16 +227,14 @@ void function() {
     switch (part) {
       case 'body': 
         content = (htmlContent.match(/(?<=<body>).*(?=<\/body>)/i) || [''])[0];
-        content === '' && (
-          content = htmlContent.replace(/.*<html>(.*)<\/html>.*/i, '$1'),
-          content = content.replace(/<(head|style|title).*>.*?<\/\1>|<(link|meta).*?>/gi, '')
-        );
+        if (content !== '') return content;
+        content = htmlContent.replace(/.*<html>(.*)<\/html>.*/i, '$1');
+        content = content.replace(/<(head|style|title).*>.*?<\/\1>|<(link|meta).*?>/gi, '');
         return content;
       case 'head':
         content = (htmlContent.match(/(?<=<head>).*(?=<\/head>)/i) || [''])[0];
-        content === '' && (content = (
-          (htmlContent.match(/<(style|title).*>.*?<\/\1>|<(link|meta).*?>/gi) || []).join('')
-        ));
+        if (content !== '') return content;
+        content = (htmlContent.match(/<(style|title).*>.*?<\/\1>|<(link|meta).*?>/gi) || []).join('');
         return content;
       case 'html':
         const head = '<head>' + extractContent(htmlContent, 'head') + '</head>';
@@ -282,3 +261,27 @@ void function() {
 
   function setDead() { showMessage('Server disconnected.', 'warn', 'show') }
 }();
+
+function stringifyDOM(dom: DiffDOMNode, lvl = 1): string {
+  const tab = '\n' + '  '.repeat(lvl);
+  if (!['HTML', 'HEAD', 'BODY'].includes(dom.nodeName)) return tab + stringifyFilter(dom);
+  return `{${tab}${dom.nodeName},${tab}[${dom.childNodes!.map(child => stringifyDOM(child, lvl + 1)).join()}${tab}]${tab}}`;
+}
+
+function stringifyDiff(diff: DiffDOMDiff[]) {
+return diff.map(({ action, route, element, oldValue, newValue }) => `{
+  ${action.replace(/[A-Z]/g, c => '_' + c).toUpperCase()} : ${route},${
+  element ? `
+  ${stringifyFilter(element)}` : ''}${
+  oldValue ? `
+  old: ${stringifyFilter(oldValue)},` : ''}${
+  newValue ? `
+  new: ${stringifyFilter(newValue)}` : ''}
+}`).join(', ');
+}
+
+function stringifyFilter(node: string | DiffDOMNode) {
+  return JSON.stringify(node, ['nodeName', 'childNodes', 'data', 'oldData'])
+    .replace(/"nodeName":/g, '')
+    .replace(/"childNodes"/g, 'kids');
+}
