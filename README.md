@@ -1,11 +1,14 @@
 # Lively Reload
 ## Features
 * **Live preview of your `.html`, `.css` files without the need to save.**
-http://raw.githubusercontent.com/uahnbu/lively-reload/master/resources/HtmlCss.mp4
+
+https://user-images.githubusercontent.com/27907396/121034411-34a42200-c7d7-11eb-8138-d02370d2e0c4.mp4
 * **The preview will reload when you save `.js` files.**
-http://raw.githubusercontent.com/uahnbu/lively-reload/master/resources/JS.mp4
+
+https://user-images.githubusercontent.com/27907396/121034475-3ec62080-c7d7-11eb-8b1b-0b1a41cc8ce1.mp4
 * **`.pug`, `.scss`, `.sass`, `.ts` files are also support.**
-http://raw.githubusercontent.com/uahnbu/lively-reload/master/resources/PugSass.mp4
+
+https://user-images.githubusercontent.com/27907396/121034591-530a1d80-c7d7-11eb-8974-ece8cdc8f800.mp4
 * **2 container tags for wrapping editable contents are provided.**
   ```html
   <!-- <lively-container> -->
