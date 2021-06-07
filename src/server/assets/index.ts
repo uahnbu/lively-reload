@@ -2,8 +2,8 @@
 
 declare const diffDOM: DiffDOMObject
 
+const documents: { [key: string]: IframeDoc } = {};
 void function() {
-  const documents: { [key: string]: IframeDoc } = {};
   const fileMessage = document.querySelector('#fileMessage') as HTMLElement;
   const dirtyLinks: { [key: string]: string } = {};
   const dd = new diffDOM.DiffDOM;
@@ -31,6 +31,8 @@ void function() {
       ));
       if (!script) continue;
       document.body.removeChild(iframeDoc.iframe);
+      console.log(documents);
+      console.log(iframeDoc.oldHTML);
       createIframe(htmlPath, iframeDoc.oldHTML);
     }
   });
@@ -143,8 +145,10 @@ void function() {
     const newDOM = diffDOM.nodeToObj(newHTML);
     const toAmendedHTML = filterDiff(dd.diff(dom, newDOM), dom);
     const toJSAlteration = filterDiff(dd.diff(oldDOM, dom), oldDOM);
+    console.log(dom, oldDOM, newDOM);
     dd.apply(el, toAmendedHTML);
     dd.apply(el, toJSAlteration);
+    iframeDoc.oldHTML = newHTML.outerHTML;
     iframeDoc.oldDOM = newDOM;
   }
 
