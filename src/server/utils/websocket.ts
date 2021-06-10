@@ -23,7 +23,7 @@ wsServer.on('connect', ws => (
   ))
 ));
 
-export function resurrect() { heartBeat = setInterval(() => sendMessage('alive'), 300) }
+export function resurrect() { heartBeat = setInterval(() => sendMessage('alive'), 200) }
 export function killHeart() { clearInterval(heartBeat) }
 export function sendMessage(task: string, data: any = null) {
   data = JSON.stringify(data);

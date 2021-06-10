@@ -31,8 +31,6 @@ void function() {
       ));
       if (!script) continue;
       document.body.removeChild(iframeDoc.iframe);
-      console.log(documents);
-      console.log(iframeDoc.oldHTML);
       createIframe(htmlPath, iframeDoc.oldHTML);
     }
   });
@@ -143,14 +141,28 @@ void function() {
     const dom = diffDOM.nodeToObj(el);
     const oldDOM = iframeDoc.oldDOM;
     const newDOM = diffDOM.nodeToObj(newHTML);
-    const toAmendedHTML = filterDiff(dd.diff(dom, newDOM), dom);
-    const toJSAlteration = filterDiff(dd.diff(oldDOM, dom), oldDOM);
-    console.log(dom, oldDOM, newDOM);
+    // const toAmendedHTML = filterDiff(dd.diff(dom, newDOM), dom);
+    // const toJSAlteration = filterDiff(dd.diff(oldDOM, dom), oldDOM);
+    const toAmendedHTML = dd.diff(dom, newDOM);
+    const toJSAlteration = dd.diff(oldDOM, dom);
     dd.apply(el, toAmendedHTML);
     dd.apply(el, toJSAlteration);
     iframeDoc.oldHTML = newHTML.outerHTML;
     iframeDoc.oldDOM = newDOM;
   }
+
+  /*
+  * **2 container tags for wrapping editable contents are provided.**
+  ```html
+  <!-- <lively-container> -->
+  editable contents
+  <!-- </lively-container> -->
+  ```
+  The tags can be attained by typing `<lively-container>` then pressing `Ctrl`+`/` to turn it into a comment. (so as not to affect your code flow)
+
+  They are useful when working with libraries which inject its own code into the DOM like *Aframe*. In other cases, however, directly commenting out code is more advisable.
+
+  If either tag is omitted, the editable contents will start/end at the first/last element of the same indentation level.
 
   function filterDiff(diffs: DiffDOMDiff[], dom: DiffDOMNode) {
     const markedRoutes = getMarkedRoutes(dom);
@@ -224,7 +236,7 @@ void function() {
         data!.toLowerCase().trim() === '<' + (end === 'left' ? '' : '/') + 'lively-container>'
       ));
     }
-  }
+  } */
 
   function extractContent(htmlContent: string, part: 'html' | 'body' | 'head'): string {
     let content;
