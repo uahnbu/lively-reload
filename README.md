@@ -50,8 +50,10 @@
   * Set `outdir` to `null` to disable exporting `.ts` files on save.
   * When set to `null`, the `.js` files won't be updated, but the preview will still automatically reload.
   * Typescript does not support generation of minifies or obfuscated code.
-## Release Notes
-### 0.0.1
+## Changelog
+### [Unreleased]
+* Add padding/margin highlight for elements selected in editor.
+### [0.0.1]
 Initial release.
 ## License
 Lively Reload is [MIT Licensed](../blob/master/LICENSE).
