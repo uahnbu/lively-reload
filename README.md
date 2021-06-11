@@ -1,10 +1,13 @@
 # Lively Reload
 ## Features
 * **Live preview of your `.html`, `.css` files without the need to save.**
+
   ![HTML and CSS Demonstration](./resources/HtmlCss.gif)
 * **The preview will reload when you save `.js` files.**
+
   ![JS Demonstration](./resources/Js.gif)
 * **`.pug`, `.scss`, `.sass`, `.ts` files are also support.**
+
   ![Pug and Sass Demonstration](./resources/PugSass.gif)
 ## Notes
 * Use double-quote `"` for `html` tags' attributes.
