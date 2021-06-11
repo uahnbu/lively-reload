@@ -7,7 +7,7 @@
   "icon": "resources/icon.png",
   "repository": {
     "type": "git",
-    "url": "https://github.com/uahnbu/lively-reload.git"
+    "url": "https://github.com/uahnbu/lively-reload"
   },
   "engines": {
     "vscode": "^1.53.0"

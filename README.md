@@ -1,4 +1,7 @@
 # Lively Reload
+[![VSCode Marketplace](https://img.shields.io/vscode-marketplace/v/uahnbu.lively-reload.svg?style=flat-square&label=vscode%20marketplace)](https://marketplace.visualstudio.com/items?itemName=uahnbu.lively-reload) [![Total Installs](https://img.shields.io/visual-studio-marketplace/azure-devops/installs/total/uahnbu.lively-reload)](https://marketplace.visualstudio.com/items?itemName=uahnbu.lively-reload) [![Rating](https://img.shields.io/visual-studio-marketplace/r/uahnbu.lively-reload)](https://marketplace.visualstudio.com/items?itemName=uahnbu.lively-reload)
+
+![Azure DevOps build Status](https://img.shields.io/azure-devops/build/uahnbu/579f392f-2f13-44ac-836f-363738fe66a1/1) ![Azure DevOps coverage](https://img.shields.io/azure-devops/coverage/uahnbu/579f392f-2f13-44ac-836f-363738fe66a1/1)
 ## Features
 * **Live preview of your `.html`, `.css` files without the need to save.**
 
