@@ -1,5 +1,5 @@
 # Lively Reload
-[![Marketplace Version](https://img.shields.io/visual-studio-marketplace/v/uahnbu.lively-reload)](https://marketplace.visualstudio.com/items?itemName=uahnbu.lively-reload) [![Total Installs](https://img.shields.io/visual-studio-marketplace/azure-devops/installs/total/uahnbu.lively-reload)](https://marketplace.visualstudio.com/items?itemName=uahnbu.lively-reload) [![Rating](https://img.shields.io/visual-studio-marketplace/r/uahnbu.lively-reload)](https://marketplace.visualstudio.com/items?itemName=uahnbu.lively-reload) [![Issues](https://img.shields.io/github/issues/uahnbu/lively-reload)](https://github.com/uahnbu/lively-reload/issues)
+[![Marketplace Version](https://img.shields.io/visual-studio-marketplace/v/uahnbu.lively-reload)](https://marketplace.visualstudio.com/items?itemName=uahnbu.lively-reload) [![Total Installs](https://img.shields.io/visual-studio-marketplace/i/uahnbu.lively-reload)](https://marketplace.visualstudio.com/items?itemName=uahnbu.lively-reload) [![Rating](https://img.shields.io/visual-studio-marketplace/r/uahnbu.lively-reload)](https://marketplace.visualstudio.com/items?itemName=uahnbu.lively-reload) [![Issues](https://img.shields.io/github/issues/uahnbu/lively-reload)](https://github.com/uahnbu/lively-reload/issues)
 ## Features
 * **Live preview of your `.html`, `.css` files without the need to save.**
 
