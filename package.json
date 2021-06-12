@@ -2,7 +2,7 @@
   "name": "lively-reload",
   "displayName": "Lively Reload",
   "description": "Reload your webpage without saving",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "publisher": "uahnbu",
   "icon": "resources/icon.png",
   "repository": {
