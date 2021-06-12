@@ -2,7 +2,7 @@
   "name": "lively-reload",
   "displayName": "Lively Reload",
   "description": "Reload your webpage without saving",
-  "version": "0.0.2",
+  "version": "0.0.1",
   "publisher": "uahnbu",
   "icon": "resources/icon.png",
   "repository": {
@@ -70,8 +70,7 @@
     }
   },
   "scripts": {
-    "vscode:prepublish": "webpack",
-    "publish": "vsce publish patch",
+    "publish": "webpack && vsce publish patch",
     "compile": "webpack --mode development",
     "watch": "webpack -w --mode development",
     "lint": "eslint src --ext ts",
