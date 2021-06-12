@@ -5,9 +5,20 @@
   "version": "0.0.1",
   "publisher": "uahnbu",
   "icon": "resources/icon.png",
+  "keywords": [
+    "live reload",
+    "live server",
+    "hot reload",
+    "live preview",
+    "browser preview"
+  ],
+  "galleryBanner": {
+    "color": "#2b0b66",
+    "theme": "dark"
+  },
   "repository": {
     "type": "git",
-    "url": "https://github.com/uahnbu/lively-reload"
+    "url": "https://github.com/uahnbu/lively-reload.git"
   },
   "engines": {
     "vscode": "^1.53.0"
