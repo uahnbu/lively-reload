@@ -1,9 +1,11 @@
 node_modules/**
 .vscode/**
 src/**
-resources/**
 webpack.config.js
 **/tsconfig.json
 **/.eslintrc.json
 **/*.map
 **/*.ts
+resources/*.mp4
+resources/*.gif
+resources/icon-with-apple.png
