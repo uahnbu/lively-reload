@@ -1,7 +1,5 @@
 # Lively Reload
-[![VSCode Marketplace](https://img.shields.io/vscode-marketplace/v/uahnbu.lively-reload.svg?style=flat-square&label=vscode%20marketplace)](https://marketplace.visualstudio.com/items?itemName=uahnbu.lively-reload) [![Total Installs](https://img.shields.io/visual-studio-marketplace/azure-devops/installs/total/uahnbu.lively-reload)](https://marketplace.visualstudio.com/items?itemName=uahnbu.lively-reload) [![Rating](https://img.shields.io/visual-studio-marketplace/r/uahnbu.lively-reload)](https://marketplace.visualstudio.com/items?itemName=uahnbu.lively-reload)
-
-![Azure DevOps build Status](https://img.shields.io/azure-devops/build/uahnbu/579f392f-2f13-44ac-836f-363738fe66a1/1) ![Azure DevOps coverage](https://img.shields.io/azure-devops/coverage/uahnbu/579f392f-2f13-44ac-836f-363738fe66a1/1)
+[![VSCode Marketplace](https://img.shields.io/vscode-marketplace/v/uahnbu.lively-reload.svg?style=flat-square&label=vscode%20marketplace)](https://marketplace.visualstudio.com/items?itemName=uahnbu.lively-reload) [![Total Installs](https://img.shields.io/visual-studio-marketplace/azure-devops/installs/total/uahnbu.lively-reload)](https://marketplace.visualstudio.com/items?itemName=uahnbu.lively-reload) [![Rating](https://img.shields.io/visual-studio-marketplace/r/uahnbu.lively-reload)](https://marketplace.visualstudio.com/items?itemName=uahnbu.lively-reload) [!(Issues)[https://img.shields.io/github/issues/uahnbu/lively-reload]](https://github.com/uahnbu/lively-reload/issues)
 ## Features
 * **Live preview of your `.html`, `.css` files without the need to save.**
 
@@ -18,6 +16,7 @@
 * Only the first workspace is support in a multi-workspace environment, since identification of the active workspace is not an option.
 * Moving container tags (`Alt`+`Up/Down` by default) will cause error. Instead, remove the tag first, or better, call a hard reload.
 ## Settings
+Settings can also be specified in your `package.json` at root directory. These settings will override *VSCode Extension Setting*.
 * **`livelyReload.port`**: A port to listen to the server.
   * Default value is `2020`.
 * **`livelyReload.pugOptions`**: Configurations for exported pug files.
