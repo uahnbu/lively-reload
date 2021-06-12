@@ -1,6 +1,7 @@
 node_modules/**
 .vscode/**
 src/**
+resources/**
 webpack.config.js
 **/tsconfig.json
 **/.eslintrc.json
