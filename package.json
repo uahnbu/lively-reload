@@ -71,6 +71,7 @@
   },
   "scripts": {
     "vscode:prepublish": "webpack",
+    "publish": "vsce publish patch",
     "compile": "webpack --mode development",
     "watch": "webpack -w --mode development",
     "lint": "eslint src --ext ts",
