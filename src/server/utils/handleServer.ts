@@ -23,7 +23,9 @@ export function startServer() {
   const startMessage = 'Server started on http://127.0.0.1:' + port + '.';
   app.use(staticDir(join(__dirname, 'assets')));
   root && app.use(staticDir(root));
-  server.listen(port, () => window.showInformationMessage(startMessage, { title: 'Dismiss' }));
+  server.listen(port, () =>
+    window.showInformationMessage(startMessage, { title: 'Dismiss' })
+  );
   serverRunning = true;
   openUrl('http://127.0.0.1:' + port);
   resurrect();

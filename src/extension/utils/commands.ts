@@ -4,7 +4,9 @@ import { modifyHTML } from '../../editor';
 import { exec } from 'child_process';
 import { existsSync, readFileSync } from 'fs';
 
-export function getRoot() { return workspace.workspaceFolders?.[0].uri.fsPath }
+export function getRoot() {
+  return workspace.workspaceFolders?.[0].uri.fsPath;
+}
 
 export function getActiveFile() {
   const activeTab = window.activeTextEditor?.document;
@@ -30,6 +32,7 @@ export function getConfig(prop: string) {
 }
 
 export function openUrl(url: string) {
-  const cmd = { darwin: 'open', win32: 'start' }[process.platform as 'darwin' | 'win32'] || 'xdg-open';
+  const someProcess = process.platform as 'darwin' | 'win32';
+  const cmd = { darwin: 'open', win32: 'start' }[someProcess] || 'xdg-open';
   return exec(cmd + ' ' + Uri.parse(url.replace(/"/g, '\\"')));
 }
