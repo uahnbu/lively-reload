@@ -1,5 +1,9 @@
 import { window, workspace } from 'vscode';
-import { editorOnChange, editorOnSave, activeFileOnChange } from './utils/handleEditor';
+import {
+  editorOnChange,
+  editorOnSave,
+  activeFileOnChange
+} from './utils/handleEditor';
 
 export { modifyHTML } from './utils/modifyContent';
 

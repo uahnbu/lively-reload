@@ -30,6 +30,7 @@ export function getConfig(prop: string) {
 }
 
 export function openUrl(url: string) {
-  const cmd = { darwin: 'open', win32: 'start' }[process.platform as 'darwin' | 'win32'] || 'xdg-open';
+  const platform = process.platform as 'darwin' | 'win32';
+  const cmd = { darwin: 'open', win32: 'start' }[platform] || 'xdg-open';
   return exec(cmd + ' ' + Uri.parse(url.replace(/"/g, '\\"')));
 }

@@ -32,7 +32,10 @@ interface DiffDOMDiff {
 }
 
 interface DiffDomConstructor {
-  diff(node1: HTMLElement | DiffDOMNode, node2: HTMLElement | DiffDOMNode): DiffDOMDiff[]
+  diff(
+    node1: HTMLElement | DiffDOMNode,
+    node2: HTMLElement | DiffDOMNode
+  ): DiffDOMDiff[]
   apply(node: HTMLElement | DiffDOMNode, diff: DiffDOMDiff[]): boolean
   new(): DiffDomConstructor
 }

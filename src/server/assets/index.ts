@@ -35,7 +35,9 @@ void function() {
     }
   });
   ws.on('injectCSS', ({ fileRel, content }: { fileRel: string, content: string }) => {
-    for (const htmlPath in documents) { writeStyle(documents[htmlPath].head, fileRel, content) }
+    for (const htmlPath in documents) {
+      writeStyle(documents[htmlPath].head, fileRel, content);
+    }
   });
   ws.on('switchHTML', ({ filePath, content }: { filePath: string, content: string }) => {
     const initMessage = document.querySelector('#initMessage');
@@ -56,10 +58,14 @@ void function() {
     diffIframe(iframeDoc, newHTML);
 
     function modifyHTML(html: string) {
-      return html.replace(/&nbsp;/g, String.fromCharCode(0x00A0)).replace(/=""/g, '');
+      const nbsp = String.fromCharCode(0x00A0);
+      return html.replace(/&nbsp;/g, nbsp).replace(/=""/g, '');
     }
   });
-  ws.on('alive', () => (clearTimeout(heartBeat), heartBeat = setTimeout(setDead, 500)));
+  ws.on('alive', () => (
+    clearTimeout(heartBeat),
+    heartBeat = setTimeout(setDead, 500)
+  ));
  
   async function createIframe(filePath: string, content: string) {
     const iframe = document.createElement('iframe');
@@ -73,7 +79,7 @@ void function() {
     if (headContent) {
       iframeDoc.head.innerHTML = headContent;
       writeStyle(iframeDoc.head);
-      await activateScripts(iframeDoc.head);
+      await activateScripts(iframeDoc.head)
     }
     iframeDoc.body.innerHTML = extractContent(content, 'body');
     iframeDoc.oldHTML = iframeDoc.documentElement.outerHTML;
@@ -85,9 +91,14 @@ void function() {
     const iframes = [...document.querySelectorAll('iframe')];
     const docIframe = iframeDoc.iframe;
     iframes.forEach(iframe => iframe !== docIframe && (
-      iframe.animate({ opacity: 0, zIndex: 0 }, { duration: 500, fill: 'forwards' })
+      iframe.animate(
+        { opacity: 0, zIndex: 0 },
+        { duration: 500, fill: 'forwards' }
+      )
     ));
-    docIframe.animate({ opacity: 1, zIndex: 1 }, { duration: 500, fill: 'forwards' });
+    docIframe.animate(
+      { opacity: 1, zIndex: 1 },
+      { duration: 500, fill: 'forwards' });
   }
 
   function writeStyle(el: HTMLElement, fileRel?: string, content?: string) {
@@ -106,7 +117,8 @@ void function() {
       }
     }
     links.forEach(link => {
-      const href = link.href.startsWith(location.href) && link.href.slice(location.href.length) || link.href;
+      const href = link.href.startsWith(location.href) &&
+        link.href.slice(location.href.length) || link.href;
       const id = generateStyleId(href);
       if (content) dirtyLinks[id] = content; else content = dirtyLinks[id];
       if (!content) return;
@@ -118,7 +130,8 @@ void function() {
       el.removeChild(link);
     });
     function generateStyleId(url: string) {
-      return 'lively-style-' + btoa(encodeURIComponent(url)).replace(/[+/=]/g, '_');
+      const encodedUrl = btoa(encodeURIComponent(url)).replace(/[+/=]/g, '_');
+      return 'lively-style-' + encodedUrl;
     }
   }
   
@@ -127,7 +140,10 @@ void function() {
     await Promise.all(scripts.map(oldScript => new Promise((resolve, reject) => {
       const script = el.ownerDocument.createElement('script');
       const { src, textContent } = oldScript;
-      src && (script.src = src.startsWith(location.href) && src.slice(location.href.length) || src);
+      src && (
+        script.src = src.startsWith(location.href) &&
+        src.slice(location.href.length) || src
+      );
       script.textContent = textContent;
       script.onload = resolve;
       script.onerror = reject;
@@ -141,28 +157,16 @@ void function() {
     const dom = diffDOM.nodeToObj(el);
     const oldDOM = iframeDoc.oldDOM;
     const newDOM = diffDOM.nodeToObj(newHTML);
-    // const toAmendedHTML = filterDiff(dd.diff(dom, newDOM), dom);
-    // const toJSAlteration = filterDiff(dd.diff(oldDOM, dom), oldDOM);
-    const toAmendedHTML = dd.diff(dom, newDOM);
-    const toJSAlteration = dd.diff(oldDOM, dom);
+    console.log('Raw HTML', oldDOM);
+    console.log('Js-altered HTML', dom);
+    console.log('Editor-modified HTML', newDOM);
+    const toAmendedHTML = filterDiff(dd.diff(dom, newDOM), dom);
+    const toJSAlteration = filterDiff(dd.diff(oldDOM, dom), oldDOM);
     dd.apply(el, toAmendedHTML);
     dd.apply(el, toJSAlteration);
     iframeDoc.oldHTML = newHTML.outerHTML;
     iframeDoc.oldDOM = newDOM;
   }
-
-  /*
-  * **2 container tags for wrapping editable contents are provided.**
-  ```html
-  <!-- <lively-container> -->
-  editable contents
-  <!-- </lively-container> -->
-  ```
-  The tags can be attained by typing `<lively-container>` then pressing `Ctrl`+`/` to turn it into a comment. (so as not to affect your code flow)
-
-  They are useful when working with libraries which inject its own code into the DOM like *Aframe*. In other cases, however, directly commenting out code is more advisable.
-
-  If either tag is omitted, the editable contents will start/end at the first/last element of the same indentation level.
 
   function filterDiff(diffs: DiffDOMDiff[], dom: DiffDOMNode) {
     const markedRoutes = getMarkedRoutes(dom);
@@ -236,7 +240,7 @@ void function() {
         data!.toLowerCase().trim() === '<' + (end === 'left' ? '' : '/') + 'lively-container>'
       ));
     }
-  } */
+  }
 
   function extractContent(htmlContent: string, part: 'html' | 'body' | 'head'): string {
     let content;
@@ -244,13 +248,17 @@ void function() {
       case 'body': 
         content = (htmlContent.match(/(?<=<body>).*(?=<\/body>)/i) || [''])[0];
         if (content !== '') return content;
-        content = htmlContent.replace(/.*<html>(.*)<\/html>.*/i, '$1');
-        content = content.replace(/<(head|style|title).*>.*?<\/\1>|<(link|meta).*?>/gi, '');
+        content = htmlContent
+          .replace(/.*<html>(.*)<\/html>.*/i, '$1')
+          .replace(/<(head|style|title).*>.*?<\/\1>|<(link|meta).*?>/gi, '');
         return content;
       case 'head':
         content = (htmlContent.match(/(?<=<head>).*(?=<\/head>)/i) || [''])[0];
         if (content !== '') return content;
-        content = (htmlContent.match(/<(style|title).*>.*?<\/\1>|<(link|meta).*?>/gi) || []).join('');
+        content = (
+          htmlContent.match(/<(style|title).*>.*?<\/\1>|<(link|meta).*?>/gi) ||
+          []
+        ).join('');
         return content;
       case 'html':
         const head = '<head>' + extractContent(htmlContent, 'head') + '</head>';
@@ -280,8 +288,12 @@ void function() {
 
 function stringifyDOM(dom: DiffDOMNode, lvl = 1): string {
   const tab = '\n' + '  '.repeat(lvl);
-  if (!['HTML', 'HEAD', 'BODY'].includes(dom.nodeName)) return tab + stringifyFilter(dom);
-  return `{${tab}${dom.nodeName},${tab}[${dom.childNodes!.map(child => stringifyDOM(child, lvl + 1)).join()}${tab}]${tab}}`;
+  if (!['HTML', 'HEAD', 'BODY'].includes(dom.nodeName)) {
+    return tab + stringifyFilter(dom);
+  }
+  return `{${tab}${dom.nodeName},${tab}[${
+    dom.childNodes!.map(child => stringifyDOM(child, lvl + 1)).join()
+  }${tab}]${tab}}`;
 }
 
 function stringifyDiff(diff: DiffDOMDiff[]) {

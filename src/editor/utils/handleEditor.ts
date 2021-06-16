@@ -7,9 +7,12 @@ import { exportPug, exportSass, exportTs } from './exportContent';
 
 export function editorOnSave({ fileName: filePath, getText }: TextDocument) {
   const root = getRoot();
-  if (!root/* || !isServerRunning */ || !filePath.startsWith(root)) return;
+  if (!root || !isServerRunning || !filePath.startsWith(root)) return;
   switch (extname(filePath).toLowerCase()) {
-    case '.js': sendMessage('reloadJS', filePath.slice(root.length + 1).replace(/\\/g, '/')); break;
+    case '.js':
+      const modifiedPath = filePath.slice(root.length + 1).replace(/\\/g, '/');
+      sendMessage('reloadJS', modifiedPath);
+      break;
     case '.pug': exportPug(filePath, getText()); break;
     case '.ts': exportTs(filePath, getText()); break;
     case '.scss': case '.sass': exportSass(filePath, getText());
@@ -38,6 +41,9 @@ function handleChange(filePath: string, content: string, type: 'file' | 'tab') {
       break;
     case '.html':
     case '.pug':
-      sendMessage(type === 'file' ? 'editHTML' : 'switchHTML', modifyHTML(filePath, content));
+      sendMessage(
+        type === 'file' ? 'editHTML' : 'switchHTML',
+        modifyHTML(filePath, content)
+      );
   }
 }

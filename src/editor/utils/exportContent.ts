@@ -42,8 +42,14 @@ export function exportTs(filePath: string, content: string) {
 function getTarget(filePath: string, outdir: string) {
   const root = getRoot();
   if (!root) return;
-  const extMap = { '.pug': '.html', '.scss': '.css', '.sass': '.css', '.ts': '.js' };
-  const ext = extname(filePath).toLowerCase() as '.pug' | '.scss' | '.sass' | '.ts';
+  const extMap = {
+    '.pug': '.html',
+    '.scss': '.css',
+    '.sass': '.css',
+    '.ts': '.js'
+  };
+  const ext = extname(filePath).toLowerCase() as (
+                '.pug' | '.scss' | '.sass' | '.ts');
   const fileName = parse(filePath).name + extMap[ext];
   const dist = join(root, outdir);
   !existsSync(dist) && mkdirSync(dist);
