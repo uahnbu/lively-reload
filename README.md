@@ -17,6 +17,17 @@
 * **`.pug`, `.scss`, `.sass`, `.ts` files are also support.**
 
   ![Pug and Sass Demonstration](./resources/PugSass.gif)
+* **2 container tags for wrapping editable contents are provided.**
+  ```html
+  <!-- <lively-container> -->
+  editable contents
+  <!-- </lively-container> -->
+  ```
+  The tags can be attained by typing `<lively-container>` then pressing `Ctrl`+`/` to turn it into a comment. (so as not to affect your code flow)
+
+  They are useful when working with libraries which inject its own code into the DOM like *Aframe*. In other cases, however, directly commenting out code is more advisable.
+
+  If either tag is omitted, the editable contents will start/end at the first/last element of the same indentation level.
 ## Notes
 * Use double-quote `"` for `html` tags' attributes.
 * Previous active files are still displaying in the background. Therefore if you suffer from a decrease in performance, call for a hard reload through `Ctrl`+`Shift`+`P` → `>livelyReload.reloadLively`.
