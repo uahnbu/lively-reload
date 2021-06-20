@@ -4,7 +4,13 @@ import statusButton from './utils/statusButton';
 
 export { statusButton };
 
-export { getRoot, getConfig, getActiveFile, openUrl } from './utils/commands';
+export {
+	getRoot,
+	getConfig,
+	getActiveFile,
+	openUrl,
+	showMessage
+} from './utils/commands';
 
 export const START_COMMAND = 'livelyReload.startLively';
 export const CLOSE_COMMAND = 'livelyReload.closeLively';

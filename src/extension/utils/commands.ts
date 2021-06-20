@@ -13,7 +13,7 @@ export function getActiveFile() {
   if (!activeTab) return;
   const activePath = activeTab.fileName;
   const ext = extname(activePath).toLowerCase();
-  if (ext !== '.html' && ext !== '.pug') return null;
+  if (ext !== '.html' && ext !== '.pug') return;
   return modifyHTML(activePath, activeTab.getText(), getRoot());
 }
 
@@ -37,4 +37,11 @@ export function openUrl(url: string) {
   const someProcess = process.platform as 'darwin' | 'win32';
   const cmd = { darwin: 'open', win32: 'start' }[someProcess] || 'xdg-open';
   return exec(cmd + ' ' + Uri.parse(url.replace(/"/g, '\\"')));
+}
+
+type MessageType = 'info' | 'error' | 'warn';
+export function showMessage(msg: string, type: MessageType, options?: any) {
+  type === 'info' && window.showInformationMessage(msg, options);
+  type === 'error' && window.showErrorMessage(msg, options);
+  type === 'warn' && window.showWarningMessage(msg, options);
 }

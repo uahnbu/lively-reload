@@ -10,8 +10,17 @@ const sockets = new Set<Socket>();
 
 initServerHandler(app, server, sockets);
 
-server.on('connection', socket => (sockets.add(socket), socket.once('close', () => sockets.delete(socket))));
-server.on('upgrade', (...args: [IncomingMessage, Socket, Buffer]) => handleConnection(...args));
+server.on('connection', socket => (
+  sockets.add(socket),
+  socket.once('close', () => sockets.delete(socket))
+));
+type UpgradeArgs = [IncomingMessage, Socket, Buffer];
+server.on('upgrade', (...args: UpgradeArgs) => handleConnection(...args));
 
-export { isServerRunning, startServer, closeServer, reloadServer } from './utils/handleServer';
+export {
+  isServerRunning,
+  startServer,
+  closeServer,
+  reloadServer
+} from './utils/handleServer';
 export { sendMessage } from './utils/websocket';

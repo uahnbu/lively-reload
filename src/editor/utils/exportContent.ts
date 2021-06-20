@@ -9,7 +9,7 @@ export function exportPug(filePath: string, content: string, root: string) {
   sendMessage('editHTML', data);
   const { outdir } = getConfig('pugOptions');
   const target = getTarget(filePath, outdir, root);
-  target && isServerRunning() && writeFileSync(target, data.content);
+  target && isServerRunning() && writeFileSync(target, data!.content);
 }
 
 export function exportSass(filePath: string, content: string, root: string) {

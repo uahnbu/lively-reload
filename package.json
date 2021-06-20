@@ -95,9 +95,9 @@
     "watch": "webpack -w --mode development",
     "lint": "eslint src --ext ts",
     "compiled:ts": "tsc",
-    "compiled:html": "cpx \"src/**/*.html\" dist",
-    "compiled": "run-p compile:*",
-    "watched": "run-p \"watch:* -- -w\""
+    "compiled:html": "cpx \"src/**/*.html\" out",
+    "compiled": "run-p compiled:*",
+    "watched": "run-p \"compiled:* -- -w\""
   },
   "devDependencies": {
     "@types/express": "^4.17.11",
@@ -123,6 +123,7 @@
   },
   "dependencies": {
     "express": "^4.17.1",
+    "html-validate": "^4.14.0",
     "pug": "^3.0.0",
     "sass": "^1.32.7",
     "typescript": "^4.1.3",

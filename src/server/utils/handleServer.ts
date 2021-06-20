@@ -1,9 +1,8 @@
-import { window } from 'vscode';
 import { Server } from 'http';
 import { Socket } from 'net';
 import { Express, static as staticDir } from 'express';
 import { join } from 'path';
-import { getConfig, getRoot, statusButton, openUrl } from '../../extension';
+import { getConfig, getRoot, statusButton, openUrl, showMessage } from '../../extension';
 import { sendMessage, resurrect, killHeart } from './websocket';
 
 let app: Express;
@@ -23,9 +22,7 @@ export function startServer() {
   const startMessage = 'Server started on http://127.0.0.1:' + port + '.';
   app.use(staticDir(join(__dirname, 'assets')));
   root && app.use(staticDir(root));
-  server.listen(port, () =>
-    window.showInformationMessage(startMessage, { title: 'Dismiss' })
-  );
+  server.listen(port, () => showMessage(startMessage, 'info', { title: 'Dismiss' }));
   serverRunning = true;
   getConfig('openBrowser') && openUrl('http://127.0.0.1:' + port);
   resurrect();

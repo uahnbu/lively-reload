@@ -62,7 +62,7 @@ module.exports = [
     node: {
       __dirname: false
     },
-    devtool: false,
+    devtool: 'eval',
     externals: {
       vscode: 'commonjs vscode'
     },
