@@ -26,7 +26,6 @@ wsServer.on('connect', ws => (
 export function resurrect() {
   heartBeat = setInterval(() => {
     const debug = getConfig('debug');
-    console.log(debug);
     sendMessage('alive', { debug });
   }, 200);
 }

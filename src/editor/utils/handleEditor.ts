@@ -1,4 +1,9 @@
-import { TextDocument, TextDocumentChangeEvent, TextEditor, TextEditorSelectionChangeEvent } from 'vscode';
+import {
+  TextDocument,
+  TextDocumentChangeEvent,
+  TextEditor,
+  TextEditorSelectionChangeEvent
+} from 'vscode';
 import { modifyHTML, modifyCSS } from './modifyContent';
 import { getRoot } from '../../extension';
 import { isServerRunning, sendMessage } from '../../server';
@@ -13,9 +18,10 @@ export function editorOnSave({ fileName: filePath, getText }: TextDocument) {
       const modifiedPath = filePath.slice(root.length + 1).replace(/\\/g, '/');
       sendMessage('reloadJS', modifiedPath);
       break;
-    case '.pug': exportPug(filePath, getText()); break;
-    case '.ts': exportTs(filePath, getText()); break;
-    case '.scss': case '.sass': exportSass(filePath, getText());
+    case '.pug': exportPug(filePath, getText(), root); break;
+    case '.ts': exportTs(filePath, getText(), root); break;
+    case '.scss':
+    case '.sass': exportSass(filePath, getText(), root);
   }
 }
 
@@ -37,17 +43,19 @@ export function selectionOnChange(event: TextEditorSelectionChangeEvent) {
 }
 
 function handleChange(filePath: string, content: string, type: 'file' | 'tab') {
+  const root = getRoot();
   switch (extname(filePath).toLowerCase()) {
     case '.css':
     case '.scss':
-    case '.sass':
-      sendMessage('injectCSS', modifyCSS(filePath, content));
+    case '.sass': {
+      if (!root || !isServerRunning || !filePath.startsWith(root)) break;
+      sendMessage('injectCSS', modifyCSS(filePath, content, root));
       break;
+    }
     case '.html':
-    case '.pug':
-      sendMessage(
-        type === 'file' ? 'editHTML' : 'switchHTML',
-        modifyHTML(filePath, content)
-      );
+    case '.pug': {
+      const data = modifyHTML(filePath, content, root);
+      data && sendMessage(type === 'file' ? 'editHTML' : 'switchHTML', data);
+    }
   }
 }

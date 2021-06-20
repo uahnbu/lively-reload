@@ -1,49 +1,36 @@
 import { extname, join, parse } from "path";
 import { existsSync, mkdirSync, writeFileSync } from "fs";
-import { render as renderPug } from "pug";
-import { getConfig, getRoot } from "../../extension";
-import { renderSync as renderSass } from "sass";
-import { transpile as renderTs } from 'typescript';
-import { sendMessage } from "../../server";
-import { modifyCSS } from "./modifyContent";
+import { getConfig } from "../../extension";
+import { isServerRunning, sendMessage } from "../../server";
+import { modifyCSS, modifyHTML, modifyJs } from "./modifyContent";
 
-export function exportPug(filePath: string, content: string) {
-  const { pretty, outdir } = getConfig('pugOptions');
+export function exportPug(filePath: string, content: string, root: string) {
+  const data = modifyHTML(filePath, content, root);
+  sendMessage('editHTML', data);
+  const { outdir } = getConfig('pugOptions');
+  const target = getTarget(filePath, outdir, root);
+  target && isServerRunning() && writeFileSync(target, data.content);
+}
+
+export function exportSass(filePath: string, content: string, root: string) {
+  const data = modifyCSS(filePath, content, root);
+  sendMessage('injectCSS', data);
+  const { outdir } = getConfig('sassOptions');
+  const target = getTarget(filePath, outdir, root);
+  target && isServerRunning() && writeFileSync(target, data.content);
+}
+
+export function exportTs(filePath: string, content: string, root: string) {
+  const { outdir } = getConfig('typescriptOptions');
+  const target = getTarget(filePath, outdir, root);
+  if (!target || !isServerRunning()) return;
+  const data = modifyJs(filePath, content, root);
+  writeFileSync(target, data.content);
+  sendMessage('reloadJS', data.fileRel);
+}
+
+function getTarget(filePath: string, outdir: string | null, root: string) {
   if (outdir === null) return;
-  const target = getTarget(filePath, outdir);
-  if (!target) return;
-  content = renderPug(content, {pretty});
-  writeFileSync(target, content);
-}
-
-export function exportSass(filePath: string, content: string) {
-  const { pretty, outdir } = getConfig('sassOptions');
-  content = renderSass({
-    data: content,
-    indentedSyntax: extname(filePath).toLowerCase() === '.sass',
-    ...(outdir && pretty ? {} : { outputStyle: 'compressed' })
-  }).css.toString();
-  if (outdir === null) {
-    sendMessage('injectCSS', modifyCSS(filePath, content));
-    return;
-  }
-  const target = getTarget(filePath, outdir);
-  if (!target) return;
-  writeFileSync(target, content);
-}
-
-export function exportTs(filePath: string, content: string) {
-  const { pretty, outdir } = getConfig('typescriptOptions');
-  if (outdir === null) return;
-  const target = getTarget(filePath, outdir);
-  if (!target) return;
-  writeFileSync(target, renderTs(content));
-  sendMessage('reloadJS', target.slice(getRoot()!.length + 1));
-}
-
-function getTarget(filePath: string, outdir: string) {
-  const root = getRoot();
-  if (!root) return;
   const extMap = {
     '.pug': '.html',
     '.scss': '.css',

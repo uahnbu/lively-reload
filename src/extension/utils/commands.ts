@@ -14,7 +14,7 @@ export function getActiveFile() {
   const activePath = activeTab.fileName;
   const ext = extname(activePath).toLowerCase();
   if (ext !== '.html' && ext !== '.pug') return null;
-  return modifyHTML(activePath, activeTab.getText());
+  return modifyHTML(activePath, activeTab.getText(), getRoot());
 }
 
 export function getConfig(prop: string) {
@@ -25,7 +25,6 @@ export function getConfig(prop: string) {
     const pkgPath = join(root, 'package.json');
     if (!existsSync(pkgPath)) return;
     const pkg = JSON.parse(readFileSync(pkgPath, 'utf8'));
-    console.log(pkg);
     val = pkg['livelyReload']?.[prop];
   })();
   val === void 0 && (

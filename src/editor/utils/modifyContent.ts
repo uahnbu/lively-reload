@@ -1,47 +1,56 @@
 import { extname, join, parse } from 'path';
-import { render } from 'pug';
-import { getRoot, getConfig } from '../../extension';
+import { render as renderPug } from 'pug';
+import { renderSync as renderSass } from "sass";
+import { transpile as renderTs } from 'typescript';
+import { getConfig } from '../../extension';
 
-export function modifyHTML(filePath: string, content: string) {
-  const root = getRoot();
-  let dist = join(filePath, '..');
-  if (extname(filePath).toLowerCase() === '.pug') {
-    if (!root) return;
-    const { outdir, maxLoop } = getConfig('pugOptions');
-    dist = join(root, outdir);
+export function modifyHTML(filePath: string, content: string, root?: string) {
+  const ext = extname(filePath).toLowerCase();
+  if (ext === '.html') content = content.replace(/(^|[\n\r]+)\s*|\s+$/g, '');
+  else {
+    const { pretty, maxLoop, outdir } = getConfig('pugOptions')
     content = content.replace(
       /^(\s*while.*)$/gm,
       '-var _sAfeVar=0;\n$1&&_sAfeVar++<' + maxLoop
     );
-    content = render(content).replace(/\/>/g, '>');
-  } else content = content.replace(/(^|[\n\r]+)\s*|\s+$/g, '');
-
-  content = content.replace(/(?<=(href|src)=").+?(?=")/gi, linkRel => {
-    const linkPath = linkRel.includes(':') ? linkRel : join(dist, linkRel);
-    if (!root || !linkPath.startsWith(root)) return linkRel;
-    return linkPath.slice(root.length + 1).replace(/\\/g, '/');
-  });
-  filePath = join(dist, parse(filePath).name + '.html');
+    content = renderPug(content, { pretty }).replace(/\/>/g, '>');
+    if (root) {
+      const dist = outdir ? join(root, outdir) : root;
+      content = content.replace(/(?<=(href|src)=").+?(?=")/gi, linkRel => {
+        const linkPath = linkRel.includes(':') ? linkRel : join(dist, linkRel);
+        if (!linkPath.startsWith(root)) return linkRel;
+        return linkPath.slice(root.length + 1).replace(/\\/g, '/');
+      });
+      outdir && (filePath = join(root, outdir, parse(filePath).name + '.html'));
+    }
+  };
   return { filePath, content };
 }
 
-export function modifyCSS(filePath: string, content: string) {
-  const root = getRoot();
-  if (!root || !filePath.startsWith(root)) return;
+export function modifyCSS(filePath: string, content: string, root: string) {
   const ext = extname(filePath).toLowerCase();
-  let fileRel = filePath.slice(root.length + 1);
-  ext === '.css' && (content = content.replace(
-    new RegExp(
+  if (ext === '.css') {
+    const re = new RegExp(
       '(".*?"|\'.*?\')|;[\\n\\r\\s]*(})|\\s*[\\n\\r]+\\s*|' + 
       '\\s*([{}():,>~+])\\s*|(calc\\(.*\\))|(\\s*\\/\\*[\\s\\S]*?\\*\\/)',
       'gi'
-    ),
-    '$1$2$3$4'
-  ));
-  (ext === '.scss' || ext === '.sass') && (fileRel = join(
-    getConfig('sassOptions').outdir,
-    parse(filePath).name + '.css'
-  ));
-  fileRel = fileRel.replace(/\\/g, '/');
+    );
+    content = content.replace(re, '$1$2$3$4');
+  } else {
+    const { pretty, outdir } = getConfig('sassOptions');
+    content = renderSass({
+      data: content,
+      indentedSyntax: ext === '.sass',
+      ...(outdir && pretty ? {} : { outputStyle: 'compressed' })
+    }).css.toString();
+    outdir && (filePath = join(root, outdir, parse(filePath).name + '.css'));
+  }
+  const fileRel = filePath.slice(root.length + 1).replace(/\\/g, '/');
+  return { fileRel, content };
+}
+
+export function modifyJs(content: string, root: string, target: string) {
+  content = renderTs(content);
+  const fileRel = target.slice(root.length + 1).replace(/\\/g, '/');
   return { fileRel, content };
 }

@@ -27,7 +27,7 @@
 * Only the first workspace is support in a multi-workspace environment, since identification of the active workspace is not an option.
 * Moving container tags (`Alt`+`Up/Down` by default) will cause error. Instead, remove the tag first, or better, call a hard reload.
 ## Settings
-Settings can also be specified in your `package.json` at root directory, by declaring the property `"livelyReload"`. These settings will override *VSCode Extension Settings*.
+Settings can also be specified in your `package.json` at root directory, by declaring under the property `"livelyReload"`. These settings will override *VSCode Extension Settings*.
 * **`livelyReload.port`**: A port to host the server.
   * Default value is `2020`.
   * Changes will take effect after turning *Lively Reload* off and on again.
@@ -42,7 +42,7 @@ Settings can also be specified in your `package.json` at root directory, by decl
   ```
   {
     "outdir": "dist",
-    "maxLoop": 99,
+    "maxLoop": 999,
     "pretty": true
   }
   ```
