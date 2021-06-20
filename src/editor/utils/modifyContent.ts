@@ -1,6 +1,5 @@
 import { extname, join, parse } from 'path';
 import { render } from 'pug';
-import { renderSync } from 'sass';
 import { getRoot, getConfig } from '../../extension';
 
 export function modifyHTML(filePath: string, content: string) {
@@ -31,28 +30,18 @@ export function modifyCSS(filePath: string, content: string) {
   if (!root || !filePath.startsWith(root)) return;
   const ext = extname(filePath).toLowerCase();
   let fileRel = filePath.slice(root.length + 1);
-  if (ext === '.css') {
-    const re = new RegExp(
-      `(".*?"|'.*?')|` +
-      `;[\\n\\r\\s]*(})|` +
-      `\\s*[\\n\\r]+\\s*|` +
-      `\\s*([{}():,>~+])\\s*|` +
-      `(calc\\(.*\\))|` +
-      `(\\s*\\/\\*[\\s\\S]*?\\*\\/)`,
+  ext === '.css' && (content = content.replace(
+    new RegExp(
+      '(".*?"|\'.*?\')|;[\\n\\r\\s]*(})|\\s*[\\n\\r]+\\s*|' + 
+      '\\s*([{}():,>~+])\\s*|(calc\\(.*\\))|(\\s*\\/\\*[\\s\\S]*?\\*\\/)',
       'gi'
-    );
-    content = content.replace(re, '$1$2$3$4');
-  } else {
-    fileRel = join(
-      getConfig('sassOptions').outdir,
-      parse(filePath).name + '.css'
-    );
-    content = renderSync({
-      data: content,
-      outputStyle: 'compressed',
-      indentedSyntax: ext === '.sass'
-    }).css.toString();
-  }
+    ),
+    '$1$2$3$4'
+  ));
+  (ext === '.scss' || ext === '.sass') && (fileRel = join(
+    getConfig('sassOptions').outdir,
+    parse(filePath).name + '.css'
+  ));
   fileRel = fileRel.replace(/\\/g, '/');
   return { fileRel, content };
 }

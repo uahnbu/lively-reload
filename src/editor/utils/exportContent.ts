@@ -17,26 +17,28 @@ export function exportPug(filePath: string, content: string) {
 }
 
 export function exportSass(filePath: string, content: string) {
-  sendMessage('injectCSS', modifyCSS(filePath, content));
   const { pretty, outdir } = getConfig('sassOptions');
-  if (outdir === null) return;
-  const target = getTarget(filePath, outdir);
-  if (!target) return;
   content = renderSass({
     data: content,
     indentedSyntax: extname(filePath).toLowerCase() === '.sass',
-    ...(pretty ? {} : { outputStyle: 'compressed' })
+    ...(outdir && pretty ? {} : { outputStyle: 'compressed' })
   }).css.toString();
+  if (outdir === null) {
+    sendMessage('injectCSS', modifyCSS(filePath, content));
+    return;
+  }
+  const target = getTarget(filePath, outdir);
+  if (!target) return;
   writeFileSync(target, content);
 }
 
 export function exportTs(filePath: string, content: string) {
-  const { outdir } = getConfig('typescriptOptions');
+  const { pretty, outdir } = getConfig('typescriptOptions');
   if (outdir === null) return;
   const target = getTarget(filePath, outdir);
   if (!target) return;
-  sendMessage('reloadJS', target.slice(getRoot()!.length + 1));
   writeFileSync(target, renderTs(content));
+  sendMessage('reloadJS', target.slice(getRoot()!.length + 1));
 }
 
 function getTarget(filePath: string, outdir: string) {

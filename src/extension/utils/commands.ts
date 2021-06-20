@@ -25,9 +25,12 @@ export function getConfig(prop: string) {
     const pkgPath = join(root, 'package.json');
     if (!existsSync(pkgPath)) return;
     const pkg = JSON.parse(readFileSync(pkgPath, 'utf8'));
+    console.log(pkg);
     val = pkg['livelyReload']?.[prop];
   })();
-  !val && (val = workspace.getConfiguration('livelyReload').get(prop));
+  val === void 0 && (
+    val = workspace.getConfiguration('livelyReload').get(prop)
+  );
   return val;
 }
 

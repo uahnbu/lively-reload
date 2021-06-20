@@ -1,7 +1,7 @@
 import { Server } from 'ws';
 import { IncomingMessage } from 'http';
 import { Socket } from 'net';
-import { getActiveFile, statusButton } from '../../extension';
+import { getActiveFile, getConfig, statusButton } from '../../extension';
 import { isServerRunning } from './handleServer';
 
 const wsServer = new Server({ noServer: true });
@@ -23,7 +23,13 @@ wsServer.on('connect', ws => (
   ))
 ));
 
-export function resurrect() { heartBeat = setInterval(() => sendMessage('alive'), 200) }
+export function resurrect() {
+  heartBeat = setInterval(() => {
+    const debug = getConfig('debug');
+    console.log(debug);
+    sendMessage('alive', { debug });
+  }, 200);
+}
 export function killHeart() { clearInterval(heartBeat) }
 export function sendMessage(task: string, data: any = null) {
   data = JSON.stringify(data);

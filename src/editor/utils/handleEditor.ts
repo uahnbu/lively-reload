@@ -1,4 +1,4 @@
-import { TextDocument, TextDocumentChangeEvent, TextEditor } from 'vscode';
+import { TextDocument, TextDocumentChangeEvent, TextEditor, TextEditorSelectionChangeEvent } from 'vscode';
 import { modifyHTML, modifyCSS } from './modifyContent';
 import { getRoot } from '../../extension';
 import { isServerRunning, sendMessage } from '../../server';
@@ -30,6 +30,10 @@ export function activeFileOnChange(event: TextEditor | undefined) {
   if (!event || !isServerRunning()) return;
   const { fileName, getText } = event.document;
   handleChange(fileName, getText(), 'tab');
+}
+
+export function selectionOnChange(event: TextEditorSelectionChangeEvent) {
+  
 }
 
 function handleChange(filePath: string, content: string, type: 'file' | 'tab') {

@@ -50,7 +50,17 @@
           "default": "2020",
           "minimum": 0,
           "maximum": 65535,
-          "description": "A port to listen to the server."
+          "description": "A port to host the server."
+        },
+        "livelyReload.openBrowser": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether to automatically open the browser when starting the extension."
+        },
+        "livelyReload.debug": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether to show logs in the browser's console."
         },
         "livelyReload.pugOptions": {
           "type": "object",
@@ -72,10 +82,9 @@
         "livelyReload.typescriptOptions": {
           "type": "object",
           "default": {
-            "outdir": "dist",
-            "pretty": true
+            "outdir": "dist"
           },
-          "description": "Configurations for exported .ts files.\n\nSet \"outdir\" to null to disable exporting .ts files on save.\n(When set to null, the .js files won't be updated, but the preview will still automatically reload.)"
+          "description": "Configurations for exported .ts files.\n\nSet \"outdir\" to null to disable exporting .ts files on save.\n(When set to null, the .js files won't be updated, and the preview won't automatically reload.)"
         }
       }
     }

@@ -27,7 +27,7 @@ export function startServer() {
     window.showInformationMessage(startMessage, { title: 'Dismiss' })
   );
   serverRunning = true;
-  openUrl('http://127.0.0.1:' + port);
+  getConfig('openBrowser') && openUrl('http://127.0.0.1:' + port);
   resurrect();
   statusButton.setLoading();
 }
