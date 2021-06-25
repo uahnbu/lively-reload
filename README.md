@@ -20,18 +20,25 @@
 ## Usage
 * By pressing *Lively Reload* on the statusbar, or using the command `> Go Lively`, the extension will start compiling `.pug`, `.scss`, `.sass`, `.ts` files as configured. The statusbar will then turn *blue*.
 * By going to the configured port on `localhost` (`127.0.0.1`), the extension will start listening to changes on all supported files. The statusbar will turn *green*.
+* To sync the preview across multiple devices, install *ngrok* manually and create a tunnel to your localhost server.  
+  e.g.
+  ```
+  npm i -g ngrok
+  ngrok http 2020 --region ap
+  ```
+* Reload the whole webpage through `Ctrl`+`Shift`+`P` → `> Reload Lively`.
 * Press *Lively Reload* on the statusbar again to turn off the extension.
 ## Notes
 * Use double-quote `"` for `html` tags' attributes.
-* Previous active files are still displaying in the background. Therefore if you suffer from a decrease in performance, call for a hard reload through `Ctrl`+`Shift`+`P` → `> Reload Lively`.
+* Unlike the above command, the reload triggered when saving files will only affect the active file, and previous active files displaying in the background won't be affected.
 * Only the first workspace is support in a multi-workspace environment, since identification of the active workspace is not an option.
-* Moving container tags (`Alt`+`Up/Down` by default) will cause error. Instead, remove the tag first, or better, call a hard reload.
+* *ngrok* is not built into this extension as it's not compatible with Webpack.
 ## Settings
 Settings can also be specified in your `package.json` at root directory, by declaring under the property `"livelyReload"`. These settings will override *VSCode Extension Settings*.
 * **`livelyReload.port`**: A port to host the server.
   * Default value is `2020`.
   * Changes will take effect after turning *Lively Reload* off and on again.
-* **`livelyReload.openBrowser`**: Whether to automatically open the browser when *Lively Reload* starts.
+* **`livelyReload.openBrowser`**: Whether to open the browser when *Lively Reload* starts.
   * Either `true` or `false`. Default to `true`.
   * Changes will take effect immediately.
 * **`livelyReload.debug`**: Whether to show logs in the browser's console.
@@ -39,7 +46,7 @@ Settings can also be specified in your `package.json` at root directory, by decl
   * Changes will take effect immediately.
 * **`livelyReload.pugOptions`**: Configurations for exported pug files.
   * Options:
-  ```
+  ```json
   {
     "outdir": "dist",
     "maxLoop": 999,
@@ -53,7 +60,7 @@ Settings can also be specified in your `package.json` at root directory, by decl
   * Changes will take effect immediately.
 * **`livelyReload.sassOptions`**: Configurations for exported sass files.
   * Options:
-  ```
+  ```json
   {
     "outdir": "dist",
     "pretty": true
@@ -64,7 +71,7 @@ Settings can also be specified in your `package.json` at root directory, by decl
   * Changes will take effect immediately.
 * **`livelyReload.typescriptOptions`**: Configurations for exported typescript files.
   * Options:
-  ```
+  ```json
   {
     "outdir": "dist"
   }

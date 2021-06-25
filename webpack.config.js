@@ -10,7 +10,7 @@ const path = require('path');
 module.exports = [
   {
     target: 'web',
-    entry: './src/server/assets',
+    entry: './src/client',
     output: {
       path: path.resolve(__dirname, 'out/assets'),
       filename: 'index.js',
@@ -44,7 +44,7 @@ module.exports = [
         },
       }),
       new HtmlWebpackPlugin({
-        template: './src/server/assets/index.html',
+        template: './src/client/index.html',
         filename: './index.html',
         inject: false
       })

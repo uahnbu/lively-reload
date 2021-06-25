@@ -8,7 +8,9 @@ export {
 	getRoot,
 	getConfig,
 	getActiveFile,
-	openUrl,
+	openBrowser,
+	openDevtools,
+	sendWindowsKey,
 	showMessage
 } from './utils/commands';
 

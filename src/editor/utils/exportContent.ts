@@ -30,7 +30,7 @@ export function exportTs(filePath: string, content: string, root: string) {
 }
 
 function getTarget(filePath: string, outdir: string | null, root: string) {
-  if (outdir === null) return;
+  if (outdir === null) return null;
   const extMap = {
     '.pug': '.html',
     '.scss': '.css',

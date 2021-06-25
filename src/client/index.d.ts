@@ -11,10 +11,8 @@ interface IframeDoc extends Document {
 
 interface DiffDOMNode {
   nodeName: string
-  data?: string
   childNodes?: DiffDOMNode[]
-  isIgnored?: boolean
-  oldData?: DiffDOMNode
+  data?: string
   attributes?: {
     id?: string
     class?: string
@@ -24,11 +22,9 @@ interface DiffDOMNode {
 interface DiffDOMDiff {
   action: string
   route: number[]
-  name?: string
-  value?: string
-  oldValue?: string | DiffDOMNode
-  newValue?: string | DiffDOMNode
-  element?: DiffDOMNode
+  groupLength: number
+  from: number
+  to: number
 }
 
 interface DiffDomConstructor {
@@ -43,10 +39,4 @@ interface DiffDomConstructor {
 interface DiffDOMObject {
   nodeToObj(node: HTMLElement): DiffDOMNode
   DiffDOM: DiffDomConstructor
-}
-
-interface MarkedRoute {
-  route: number[]
-  start: number
-  end: number
 }

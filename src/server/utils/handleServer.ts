@@ -2,7 +2,7 @@ import { Server } from 'http';
 import { Socket } from 'net';
 import { Express, static as staticDir } from 'express';
 import { join } from 'path';
-import { getConfig, getRoot, statusButton, openUrl, showMessage } from '../../extension';
+import { getConfig, getRoot, statusButton, openBrowser, showMessage } from '../../extension';
 import { sendMessage, resurrect, killHeart } from './websocket';
 
 let app: Express;
@@ -19,12 +19,15 @@ export function reloadServer() { sendMessage('reloadFull') }
 export function startServer() {
   const root = getRoot();
   const port = getConfig('port');
-  const startMessage = 'Server started on http://127.0.0.1:' + port + '.';
   app.use(staticDir(join(__dirname, 'assets')));
   root && app.use(staticDir(root));
-  server.listen(port, () => showMessage(startMessage, 'info', { title: 'Dismiss' }));
+  openBrowser('http://127.0.0.1:' + port);
+  server.listen(port, () => showMessage(
+    'Server started on http://127.0.0.1:' + port + '.',
+    'info',
+    { title: 'Dismiss' }
+  ));
   serverRunning = true;
-  getConfig('openBrowser') && openUrl('http://127.0.0.1:' + port);
   resurrect();
   statusButton.setLoading();
 }

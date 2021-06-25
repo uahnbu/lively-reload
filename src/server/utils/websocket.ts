@@ -8,32 +8,31 @@ const wsServer = new Server({ noServer: true });
 const webSockets = new Set<any>();
 let heartBeat: NodeJS.Timeout;
 
-wsServer.on('connect', ws => (
+wsServer.on('connect', ws => {
   ws.on('message', (msg: string) => {
-    if (msg === 'connect') {
-      const activeFile = getActiveFile();
-      webSockets.add(ws);
-      activeFile && sendMessage('switchHTML', activeFile);
-      statusButton.setDoClose();
-    }
-  }),
+    if (msg !== 'connect') return;
+    const activeFile = getActiveFile();
+    webSockets.add(ws);
+    activeFile && sendMessage('switchHTML', activeFile);
+    statusButton.setDoClose();
+  });
   ws.on('close', () => (
     webSockets.delete(ws),
-    !webSockets.size && isServerRunning() && statusButton.setLoading()
-  ))
-));
+    webSockets.size === 0 && isServerRunning() && statusButton.setLoading()
+  ));
+});
 
 export function resurrect() {
-  heartBeat = setInterval(() => {
-    const debug = getConfig('debug');
-    sendMessage('alive', { debug });
-  }, 200);
+  heartBeat = setInterval(beat, 200);
+  function beat() { sendMessage('alive', { debug: getConfig('debug') }) }
 }
+
 export function killHeart() { clearInterval(heartBeat) }
+
 export function sendMessage(task: string, data: any = null) {
-  data = JSON.stringify(data);
   webSockets.forEach(ws => ws.send(JSON.stringify({ task, data })));
 }
+
 export function handleConnection(req: IncomingMessage, socket: Socket, head: Buffer) {
   wsServer.handleUpgrade(req, socket, head, ws => wsServer.emit('connect', ws));
 }
