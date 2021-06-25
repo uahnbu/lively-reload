@@ -21,7 +21,7 @@
     "url": "https://github.com/uahnbu/lively-reload.git"
   },
   "engines": {
-    "vscode": "^1.53.0"
+    "vscode": "^1.57.0"
   },
   "activationEvents": [
     "*"
@@ -129,5 +129,8 @@
     "sass": "^1.35.1",
     "typescript": "^4.3.4",
     "ws": "^7.5.0"
+  },
+  "optionalDependencies": {
+    "bufferutil": "^4.0.3"
   }
 }
