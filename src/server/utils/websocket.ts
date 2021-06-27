@@ -11,8 +11,8 @@ let heartBeat: NodeJS.Timeout;
 wsServer.on('connect', ws => {
   ws.on('message', (msg: string) => {
     if (msg !== 'connect') return;
-    const activeFile = getActiveFile();
     webSockets.add(ws);
+    const activeFile = getActiveFile();
     activeFile && sendMessage('switchHTML', activeFile);
     statusButton.setDoClose();
   });

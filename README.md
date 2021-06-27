@@ -84,4 +84,4 @@ Settings can also be specified in your `package.json` at root directory, by decl
 ## Changelog
 View the changelog [here](./CHANGELOG.md).
 ## License
-Lively Reload is [MIT Licensed](../blob/master/LICENSE).
+Lively Reload is [MIT Licensed](./LICENSE).

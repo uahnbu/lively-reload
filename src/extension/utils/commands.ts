@@ -27,7 +27,7 @@ export function getConfig(prop: string) {
   if (!root) return config;
   const pkgPath = join(root, 'package.json');
   if (!existsSync(pkgPath)) return config;
-  const pkg = JSON.parse(readFileSync(pkgPath, 'utf8'));
+  const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'));
   const pkgConfig = pkg['livelyReload']?.[prop];
   if (typeof config !== 'object') return pkgConfig ?? config;
   return {...config, ...pkgConfig};
@@ -59,7 +59,8 @@ export function sendWindowsKey(keyString: string) {
 }
 
 type MessageType = 'info' | 'error' | 'warn';
-export function showMessage(msg: string, type: MessageType, options?: any) {
+export function showMessage(msg: string, type: MessageType, options?: object) {
+  options ||= { title: 'Dismiss' };
   type === 'info' && window.showInformationMessage(msg, options);
   type === 'error' && window.showErrorMessage(msg, options);
   type === 'warn' && window.showWarningMessage(msg, options);

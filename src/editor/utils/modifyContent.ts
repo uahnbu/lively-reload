@@ -8,7 +8,7 @@ import { getConfig } from '../../extension';
 import { sendMessage } from '../../server';
 
 const htmlvalidate = new HtmlValidate({
-  extends: ['html-validate:recommended'],
+  extends: ['html-validate:a17y'],
   elements: [html5]
 });
 

@@ -2,17 +2,21 @@ import { Server } from 'http';
 import { Socket } from 'net';
 import { Express, static as staticDir } from 'express';
 import { join } from 'path';
-import { getConfig, getRoot, statusButton, openBrowser, showMessage } from '../../extension';
+import {
+  getConfig,
+  getRoot,
+  statusButton,
+  openBrowser,
+  showMessage
+} from '../../extension';
 import { sendMessage, resurrect, killHeart } from './websocket';
 
-let app: Express;
-let server: Server;
-let sockets: Set<Socket>;
+let app: Express, server: Server, sockets: Set<Socket>;
 let serverRunning = false;
 
 export function isServerRunning() { return serverRunning }
 export function initServerHandler(myApp: Express, myServer: Server, mySockets: Set<Socket>) {
-  app = myApp, server = myServer, sockets = mySockets;
+  app = myApp, server = myServer, sockets = mySockets
 }
 
 export function reloadServer() { sendMessage('reloadFull') }
@@ -24,9 +28,12 @@ export function startServer() {
   openBrowser('http://127.0.0.1:' + port);
   server.listen(port, () => showMessage(
     'Server started on http://127.0.0.1:' + port + '.',
-    'info',
-    { title: 'Dismiss' }
+    'info'
   ));
+  server.once('error', ({code}: { code: string }) => {
+    showMessage('Server error: ' + code, 'error');
+    closeServer();
+  })
   serverRunning = true;
   resurrect();
   statusButton.setLoading();
@@ -35,7 +42,7 @@ export function startServer() {
 export function closeServer() {
   killHeart();
   server.close();
-  sockets.forEach(socket => socket.destroy());
   serverRunning = false;
+  sockets.forEach(socket => socket.destroy());
   statusButton.setDoStart();
 }
