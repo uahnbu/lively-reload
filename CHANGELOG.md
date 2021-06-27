@@ -1,6 +1,9 @@
 # Change Log
 ## [Unreleased]
 * Add padding/margin highlight for elements selected in editor.
+## [0.0.7] - 2021-06-27
+### Fixed
+* Ignore html-validate strict rules.
 ## [0.0.6] - 2021-06-25
 ### Added
 * Support for synchronizing across multiple devices.
