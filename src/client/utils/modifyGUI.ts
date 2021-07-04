@@ -64,7 +64,7 @@ warningIcon.addEventListener('click', () => {
 minimizeIcon.addEventListener('mousedown', () => {
   messagePane.holdTimer = setTimeout(
     () => document.body.removeChild(messagePane),
-    800
+    500
   );
 });
 
