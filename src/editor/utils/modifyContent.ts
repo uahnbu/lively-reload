@@ -4,28 +4,29 @@ import { renderSync as renderSass } from "sass";
 import { transpile as renderTs } from 'typescript';
 import HtmlValidate from 'html-validate/dist/htmlvalidate';
 import * as html5 from 'html-validate/elements/html5.json';
+import { RuleConfig } from 'html-validate/dist/config';
+import * as htmlRules from './htmlRules.json';
 import { getConfig } from '../../extension';
 import { sendMessage } from '../../server';
 
 const htmlvalidate = new HtmlValidate({
-  extends: ['html-validate:a17y'],
-  elements: [html5]
+  elements: [html5],
+  rules: htmlRules as RuleConfig
 });
 
 export function modifyHTML(filePath: string, content: string, root?: string) {
   const ext = extname(filePath).toLowerCase();
   if (ext === '.html') {
     const report = htmlvalidate.validateString(content);
-    if (report.valid) {
-      content = content.replace(/(^|[\n\r]+)\s*|\s+$/g, '');
-      return { filePath, content };
-    }
-    const message = report.results[0].messages
-      .map(({ message, line, column }) => (
-        `<span style=font:900+100%Arial>${line}:${column}</span> ` + message
-      )).join('<br>');
-    sendMessage('showError', { message });
-    return null;
+    const messages = report.results?.[0]?.messages?.map(
+      ({ message, line, column, severity }) => ({
+        msg: `${line}:${column} ${message}`,
+        type: ['', 'warn', 'error'][severity]
+      })
+    ) || [];
+    if (!report.valid) return { filePath, messages };
+    content = content.replace(/(^|[\n\r]+)\s*|\s+$/g, '');
+    return { filePath, content, messages };
   }
 
   const { pretty, maxLoop, outdir } = getConfig('pugOptions')
@@ -43,7 +44,7 @@ export function modifyHTML(filePath: string, content: string, root?: string) {
     });
     outdir && (filePath = join(root, outdir, parse(filePath).name + '.html'));
   }
-  return { filePath, content };
+  return { filePath, content, messages: [] };
 }
 
 export function modifyCSS(filePath: string, content: string, root: string) {

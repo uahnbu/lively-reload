@@ -55,7 +55,7 @@ function handleChange(filePath: string, content: string, type: 'file' | 'tab') {
     case '.html':
     case '.pug': {
       const data = modifyHTML(filePath, content, root);
-      data && sendMessage(type === 'file' ? 'editHTML' : 'switchHTML', data);
+      sendMessage(type === 'file' ? 'editHTML' : 'switchHTML', data);
     }
   }
 }

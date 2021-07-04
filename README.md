@@ -30,7 +30,7 @@
 * Press *Lively Reload* on the statusbar again or run command `> Quit Lively` to turn off the extension.
 * Bind the above-mentioned commands to some key combinations for your convenience.
 ## Notes
-* Use double-quote `"` for `html` tags' attributes.
+* Adding or removing elements at the same level as `script` tags will sometimes cause these `script` tags to reload.
 * Unlike the above command, the reload triggered when saving files will only affect the active file, and previous active files displaying in the background won't be affected.
 * Only the first workspace is support in a multi-workspace environment, since identification of the active workspace is not an option.
 * *Ngrok* is not built into this extension as it's not compatible with *Webpack*.

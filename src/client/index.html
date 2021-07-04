@@ -1,18 +1,18 @@
 <!DOCTYPE html>
 <html>
 <head>
-<style>
-#initMessage { font-family: Arial, Helvetica, sans-serif }
-#fileMessage { position: absolute; right: 0; bottom: 0; border-radius: 8px 0 0 0; padding: 8px 32px; font-family: 'Courier New', Courier, monospace; font-weight: 600; opacity: 0; z-index: 1 }
-#fileMessage.info { background: #bd5c; box-shadow: 0 0 0 4px #442c; color: #442 }
-#fileMessage.warn { background: #f77c; box-shadow: 0 0 0 4px #411c; color: #411 }
-iframe { position: absolute; left: 0; top: 0; width: 100%; height: 100%; border: none; font-family:Arial, Helvetica, sans-serif }
-</style>
+  <link rel="stylesheet" href="lively_assets/style.css">
 </head>
 <body>
-<div id="initMessage">Establishing the connection...</div>
-<div id="fileMessage"></div>
-<script src="https://cdn.jsdelivr.net/gh/fiduswriter/diffDOM@4.2.2/browser/diffDOM.js"></script>
-<script src="index.js"></script>
+  <div id="initMessage">Establishing the connection...</div>
+  <div id="lively-pane" class="interactive">
+    <div id="lively-center" class="graspable"></div>
+    <div id="lively-controls" class="graspable">
+      <button id="lively-error" data-indicator=0>&#xf057;</button>
+      <button id="lively-warning" data-indicator=0>&#xf071;</button>
+      <button id="lively-minimize">&#xf0d7;</button>
+    </div>
+  </div>
+  <script src="lively_script.js"></script>
 </body>
 </html>

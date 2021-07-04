@@ -1,9 +1,9 @@
-//@ts-check
+// @ts-nocheck
 
 'use strict';
 
+const CopyPlugin = require('copy-webpack-plugin');
 const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
-const HtmlWebpackPlugin = require('html-webpack-plugin');
 const path = require('path');
 
 /**@type {import('webpack').Configuration}*/
@@ -12,13 +12,13 @@ module.exports = [
     target: 'web',
     entry: './src/client',
     output: {
-      path: path.resolve(__dirname, 'out/assets'),
-      filename: 'index.js',
+      path: path.resolve(__dirname, 'out/static'),
+      filename: 'lively_script.js',
       libraryTarget: 'umd',
     },
     devtool: false,
     resolve: {
-      extensions: ['.ts']
+      extensions: ['.ts', '.js']
     },
     module: {
       rules: [
@@ -31,7 +31,7 @@ module.exports = [
               happyPackMode: true
             }
           },
-        }
+        },
       ]
     },
     plugins: [
@@ -43,10 +43,11 @@ module.exports = [
           },
         },
       }),
-      new HtmlWebpackPlugin({
-        template: './src/client/index.html',
-        filename: './index.html',
-        inject: false
+      new CopyPlugin({
+        patterns: [
+          'src/client/index.html',
+          { from: 'src/client/assets', to: 'lively_assets' }
+        ]
       })
     ]
   },

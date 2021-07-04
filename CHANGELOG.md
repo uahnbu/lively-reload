@@ -1,6 +1,13 @@
 # Change Log
 ## [Unreleased]
 * Add padding/margin highlight for elements selected in editor.
+## [0.1.0] - 2021-07-05
+### Added
+* UI for the communication board, which shows errors and warnings.
+### Changed
+* Lively Reload is now completely usable offline.
+### Fixed
+* Rename `index.js` to avoid overlapping user files.
 ## [0.0.7] - 2021-06-27
 ### Fixed
 * Ignore html-validate strict rules.

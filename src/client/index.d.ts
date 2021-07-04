@@ -1,3 +1,7 @@
+type K = { [key: string]: any }
+
+type HtmlMainTag = 'html' | 'body' | 'head'
+
 interface WebSocket {
   events: { [task: string]: (data: any) => void }
   on: (event: any, handler: any) => {}
@@ -36,7 +40,27 @@ interface DiffDomConstructor {
   new(): DiffDomConstructor
 }
 
-interface DiffDOMObject {
-  nodeToObj(node: HTMLElement): DiffDOMNode
-  DiffDOM: DiffDomConstructor
+declare module 'diff-dom' {
+  export const DiffDOM: DiffDomConstructor
+  export function nodeToObj(node: HTMLElement): DiffDOMNode
+}
+
+type MsgType = 'info' | 'error' | 'warn'
+
+interface MsgData { msg: string, type: MsgType }
+
+interface RelativeData {
+  content: string
+  fileRel: string
+}
+
+interface AbsoluteData {
+  content?: string
+  filePath: string
+  messages: MsgData[]
+}
+
+interface MessagePane extends HTMLElement {
+  originalSize: [number, number] | null
+  holdTimer: NodeJS.Timeout
 }

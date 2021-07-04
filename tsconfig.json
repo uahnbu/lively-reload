@@ -3,19 +3,19 @@
 		"module": "commonjs",
 		"target": "es6",
 		"outDir": "out",
+		"rootDir": "src",
 		"lib": [
 			"es6",
 			"DOM",
 			"DOM.Iterable"
 		],
-		"removeComments": true,
-		"sourceMap": true,
+		"allowJs": true,
 		"strict": true,
-		"rootDir": "src",
-		"resolveJsonModule": true
+		"sourceMap": true,
+		"removeComments": true,
+		"resolveJsonModule": true,
 	},
-	"exclude": [
-		"node_modules",
-		".vscode-test"
+	"include": [
+		"src/**/*"
 	]
 }

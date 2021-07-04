@@ -1,12 +1,11 @@
+import { DiffDOM, nodeToObj } from 'diff-dom';
 import { YAMLDOM } from './yaml';
-import { log, showIframe } from './gui';
+import { log, showIframe } from './modifyGUI';
 
 const yamlDOM = new YAMLDOM;
 const yamlifyDOM = yamlDOM.yamlify.bind(yamlDOM);
 
-declare const diffDOM: DiffDOMObject
-
-const dd = new diffDOM.DiffDOM;
+const dd = new DiffDOM;
 const dirtyLinks: { [key: string]: string } = {};
 
 export async function createIframe(content: string) {
@@ -34,7 +33,7 @@ async function loadContent(iframeDoc: IframeDoc, content: string) {
   }
   log(iframeDoc.body.innerHTML = extractContent(content, 'body'), 'Body Tag');
   iframeDoc.oldHTML = iframeDoc.documentElement.outerHTML;
-  iframeDoc.oldDOM = diffDOM.nodeToObj(iframeDoc.documentElement);
+  iframeDoc.oldDOM = nodeToObj(iframeDoc.documentElement);
   activateScripts(iframeDoc.body);
 }
 
@@ -109,7 +108,6 @@ export function writeStyle(el: HTMLElement, fileRel?: string, content?: string) 
   }
 }
 
-type HtmlMainTag = 'html' | 'body' | 'head';
 function extractContent(htmlContent: string, part: HtmlMainTag): string {
   if (part === 'body') {
     const bodyMatch = htmlContent.match(/(?<=<body>).*(?=<\/body>)/i);
@@ -135,9 +133,9 @@ function extractContent(htmlContent: string, part: HtmlMainTag): string {
 
 function diffIframe(iframeDoc: IframeDoc, newHTML: HTMLElement) {
   const el = iframeDoc.documentElement;
-  const dom = diffDOM.nodeToObj(el);
+  const dom = nodeToObj(el);
   const oldDOM = iframeDoc.oldDOM;
-  const newDOM = diffDOM.nodeToObj(newHTML);
+  const newDOM = nodeToObj(newHTML);
   log([oldDOM, yamlifyDOM(oldDOM)], 'Raw HTML (1)'),
   log([dom, yamlifyDOM(dom)], 'Js-altered HTML (2)'),
   log([newDOM, yamlifyDOM(newDOM)], 'Editor-modified HTML (3)')

@@ -23,7 +23,7 @@ export function reloadServer() { sendMessage('reloadFull') }
 export function startServer() {
   const root = getRoot();
   const port = getConfig('port');
-  app.use(staticDir(join(__dirname, 'assets')));
+  app.use(staticDir(join(__dirname, 'static')));
   root && app.use(staticDir(root));
   openBrowser('http://127.0.0.1:' + port);
   server.listen(port, () => showMessage(

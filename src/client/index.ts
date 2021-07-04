@@ -1,8 +1,27 @@
 /// <reference path="index.d.ts" />
 
+import { Interact } from './utils/interact';
 import { YAML } from './utils/yaml';
 import { createIframe, modifyHTML, writeStyle } from './utils/modifyDOM';
-import { setDebug, showMessage, log, showIframe } from './utils/gui';
+import {
+  setDebug,
+  showIframe,
+  showMessage,
+  log,
+  maximizeMessagePane
+} from './utils/modifyGUI';
+
+export const MIN_BOX_SIZE = 144;
+
+const messagePane = document.querySelector('#lively-pane') as MessagePane;
+const interact = new Interact('interactive', 'graspable', MIN_BOX_SIZE);
+document.addEventListener('mousedown', e => {
+  const { state } = interact.mouseDown(e) || {};
+  if (!state) return;
+  messagePane.originalSize && maximizeMessagePane(MIN_BOX_SIZE, MIN_BOX_SIZE);
+});
+document.addEventListener('mouseup', interact.mouseUp.bind(interact));
+document.addEventListener('mousemove', interact.mouseMove.bind(interact));
 
 const yaml = new YAML;
 export const yamlify = yaml.yamlify.bind(yaml);
@@ -29,23 +48,20 @@ function wsInit() {
     'Connection established. Open a .html/.pug file to begin.'
   );
 
-  interface ModifiedAbsoluteFile { filePath: string, content: string };
-  interface ModifiedRelativeFile { fileRel: string, content: string };
-
-  ws.on('switchHTML', async ({ filePath, content }: ModifiedAbsoluteFile) => {
+  ws.on('switchHTML', async ({ filePath, content, messages }: AbsoluteData) => {
     const initMessage = document.querySelector('#initMessage');
     initMessage && document.body.removeChild(initMessage);
-    showMessage(filePath, 'info', 'fade');
+    showMessage([{ msg: filePath, type: 'info' } as MsgData].concat(messages));
     documents[filePath] && showIframe(documents[filePath]);
-    documents[filePath] ||= await createIframe(content);
+    content && (documents[filePath] ||= await createIframe(content));
   });
 
-  ws.on('editHTML', ({ filePath, content }: ModifiedAbsoluteFile) => (
-    modifyHTML(documents[filePath], content),
-    showMessage(null, null, 'hide')
+  ws.on('editHTML', ({ filePath, content, messages }: AbsoluteData) => (
+    showMessage(messages),
+    content && modifyHTML(documents[filePath], content)
   ));
 
-  ws.on('injectCSS', ({ fileRel, content }: ModifiedRelativeFile) => {
+  ws.on('injectCSS', ({ fileRel, content }: RelativeData) => {
     for (const htmlPath in documents) {
       writeStyle(documents[htmlPath].head, fileRel, content)
     }
@@ -71,12 +87,11 @@ function wsInit() {
   ws.on('alive', ({debug}: { debug: boolean }) => (
     setDebug(debug),
     clearTimeout(heartBeat),
-    heartBeat = setTimeout(() => (
-      showMessage('Server disconnected.', 'warn', 'show')
-    ), 500)
+    heartBeat = setTimeout(
+      () => showMessage('Server disconnected.', 'error'),
+      500
+    )
   ));
 
-  ws.on('showError', ({ message }: { message: string }) => (
-    showMessage(message, 'warn', 'show')
-  ));
+  ws.on('showMessage', (data: MsgData[]) => showMessage(data));
 }
