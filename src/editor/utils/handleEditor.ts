@@ -12,7 +12,7 @@ import { exportPug, exportSass, exportTs } from './exportContent';
 
 export function editorOnSave({ fileName: filePath, getText }: TextDocument) {
   const root = getRoot();
-  if (!root || !isServerRunning || !filePath.startsWith(root)) return;
+  if (!root || !isServerRunning() || !filePath.startsWith(root)) return;
   switch (extname(filePath).toLowerCase()) {
     case '.js':
       const modifiedPath = filePath.slice(root.length + 1).replace(/\\/g, '/');

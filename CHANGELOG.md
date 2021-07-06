@@ -1,6 +1,9 @@
 # Change Log
 ## [Unreleased]
 * Add padding/margin highlight for elements selected in editor.
+## [0.1.1] - 2021-07-06
+### Fixed
+* Outdir won't automatically be created when extension turned off.
 ## [0.1.0] - 2021-07-05
 ### Added
 * UI for the communication board, which shows errors and warnings.
