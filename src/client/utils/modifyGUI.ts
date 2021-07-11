@@ -16,6 +16,12 @@ export function showMessage(data: string | MsgData[], type: MsgType = 'info') {
   let errors = 0, warnings = 0;
   messageCenter.textContent = '';
   typeof data === 'string' && (data = [{ msg: data, type }]);
+  if (data.length === 0) {
+    messagePane.hidden = true;
+    errorIcon.dataset.indicator = warningIcon.dataset.indicator = '0';
+    return;
+  }
+  messagePane.hidden = false;
   data.forEach(({ msg, type }) => {
     const div = document.createElement('div');
     div.classList.add('lively-message', 'graspable');

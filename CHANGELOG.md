@@ -2,6 +2,12 @@
 ## [Unreleased]
 * Add padding/margin highlight for elements selected in editor.
 ---
+## [0.1.2] - 2021-07-11
+### Changed
+* Hide communication board when there's no message.
+* Long press minimizing button to remove communication board.
+### Fixed
+* Error opening empty files.
 ## [0.1.1] - 2021-07-06
 ### Fixed
 * Outdir won't automatically be created when extension is turned off.
@@ -21,6 +27,7 @@
 * Support for synchronizing across multiple devices.
 * Compatibility for Firefox.
 * Beautiful formatted logs.
+* Function `yamlify` to turn any variable to YAML.
 ### Fixed
 * Errors occurring when manipulating DOM with JS.
 ## [0.0.5] - 2021-06-20

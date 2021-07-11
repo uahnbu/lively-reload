@@ -24,7 +24,7 @@ wsServer.on('connect', ws => {
 
 export function resurrect() {
   heartBeat = setInterval(beat, 200);
-  function beat() { sendMessage('alive', { debug: getConfig('debug') }) }
+  function beat() { sendMessage('alive', getConfig(['debug'])) }
 }
 
 export function killHeart() { clearInterval(heartBeat) }

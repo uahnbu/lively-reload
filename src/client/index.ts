@@ -53,12 +53,12 @@ function wsInit() {
     initMessage && document.body.removeChild(initMessage);
     showMessage([{ msg: filePath, type: 'info' } as MsgData].concat(messages));
     documents[filePath] && showIframe(documents[filePath]);
-    content && (documents[filePath] ||= await createIframe(content));
+    content != null && (documents[filePath] ||= await createIframe(content));
   });
 
   ws.on('editHTML', ({ filePath, content, messages }: AbsoluteData) => (
     showMessage(messages),
-    content && modifyHTML(documents[filePath], content)
+    content != null && modifyHTML(documents[filePath], content)
   ));
 
   ws.on('injectCSS', ({ fileRel, content }: RelativeData) => {

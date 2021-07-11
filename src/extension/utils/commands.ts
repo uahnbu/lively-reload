@@ -21,16 +21,27 @@ export function getActiveFile() {
   return modifyHTML(activePath, activeTab.getText(), getRoot());
 }
 
-export function getConfig(prop: string) {
-  const config = workspace.getConfiguration('livelyReload').get(prop);
+export function getConfig(val: string | string[]) {
+  const vsConfigHub = workspace.getConfiguration('livelyReload');
+  const config = typeof val === 'string'
+    ? vsConfigHub.get(val) as any
+    : val.reduce((c, e) => (c[e] = vsConfigHub.get(e), c), {} as K) as any;
   const root = getRoot();
   if (!root) return config;
   const pkgPath = join(root, 'package.json');
   if (!existsSync(pkgPath)) return config;
-  const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'));
-  const pkgConfig = pkg['livelyReload']?.[prop];
-  if (typeof config !== 'object') return pkgConfig ?? config;
-  return {...config, ...pkgConfig};
+  const pkgConfigHub = JSON.parse(readFileSync(pkgPath, 'utf-8'))?.livelyReload;
+  if (typeof val === 'string') {
+    const pkgConfig = pkgConfigHub?.[val];
+    if (typeof config !== 'object') return pkgConfig ?? config;
+    return { ...config, ...pkgConfig };
+  }
+  for (const prop in config) {
+    config[prop] = typeof config[prop] === 'object'
+      ? { ...config[prop], ...pkgConfigHub?.[prop] }
+      : pkgConfigHub?.[prop] ?? config[prop];
+  }
+  return config;
 }
 
 export function openBrowser(url: string) {
