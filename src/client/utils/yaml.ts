@@ -29,7 +29,7 @@ export class YAML {
   handleArray(node: any, lvl: number, feed: boolean) {
     const gap = feed ? ' ' : '';
     if (node.length === 0) return gap + '[]';
-    const isPetiole = node.every((e: any) => this.isLeaf(e));
+    const isPetiole = node.every(this.isLeaf);
     let str = '', bond = ', ';
     !isPetiole && (
       str = '- ', bond = '\n' + ' '.repeat(this.tab * lvl) + str,
@@ -83,7 +83,7 @@ export class YAMLDOM extends YAML {
       let str = prop + ' ' + nodeName;
       attributes?.class && (str += '.' + attributes.class.replace(/\s/g, '.'));
       attributes?.id && (str += '#' + attributes.id);
-      return str;        
+      return str;
     }
     if (
       key === 'childNodes' &&

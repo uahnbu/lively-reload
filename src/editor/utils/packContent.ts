@@ -1,0 +1,119 @@
+import { extname, join, parse } from 'path';
+import HtmlValidate from 'html-validate/dist/htmlvalidate';
+import { RuleConfig } from 'html-validate/dist/config';
+import { getConfig } from '../../extension';
+import { Message } from 'html-validate/dist/reporter';
+
+let htmlvalidate: HtmlValidate;
+
+async function constructHtmlValidate() {
+  if (htmlvalidate) return;
+  const html5 = await import('html-validate/elements/html5.json');
+  const htmlRules = await import('../assets/htmlRules.json');
+  htmlvalidate = new HtmlValidate({
+    elements: [html5],
+    rules: htmlRules as RuleConfig
+  });
+}
+
+export async function packHtml(
+  content: string,
+  filePath: string,
+  root?: string
+) {
+  const ext = extname(filePath).toLowerCase();
+  if (ext !== '.html') return await packPug(content, filePath, root);
+  await constructHtmlValidate();
+  const report = htmlvalidate.validateString(content);
+  const messages = report.results?.[0]?.messages?.map(data => {
+    const { message, line, column, severity } = data;
+    const directiveMsg = `${line}:${column} ${message}`;
+    const msgType = ['', 'warn', 'error'][severity];
+    return { msg: directiveMsg, type: msgType };
+  }) || [];
+  if (!report.valid) return { filePath, messages };
+
+  const { highlightHtml } = await import('./highlightHtml');
+  content = highlightHtml(content);
+  return { filePath, content, messages };
+
+}
+
+export async function packPug(
+  content: string,
+  filePath: string,
+  root?: string
+) {
+  const { render: renderPug } = await import('pug');
+  const { pretty, maxLoop, outdir } = await getConfig('pugOptions');
+  content = content.replace(
+    /^(\s*while.*)$/gm,
+    '-var _sAfeVar=0;\n$1&&_sAfeVar++<' + maxLoop
+  );
+  content = renderPug(content, {pretty});
+  if (!root) return { filePath, content, messages: [] };
+  const dist = outdir ? join(root, outdir) : root;
+  content = content.replace(/(?<=(href|src)=").+?(?=")/gi, linkRel => {
+    const linkPath = linkRel.includes(':') ? linkRel : join(dist, linkRel);
+    if (!linkPath.startsWith(root)) return linkRel;
+    return linkPath.slice(root.length + 1).replace(/\\/g, '/');
+  });
+  outdir != null && (
+    filePath = join(root, outdir, parse(filePath).name + '.html')
+  );
+  return { filePath, content, messages: [] };
+}
+
+export async function packCss(
+  content: string,
+  filePath: string,
+  root?: string
+) {
+  const ext = extname(filePath).toLowerCase();
+  if (ext !== '.css') return packSass(content, filePath, root);
+  const fileRel = filePath.slice(root!.length + 1).replace(/\\/g, '/');
+  const selectors = [
+    '(".*?"|\'.*?\')',
+    ';[\\n\\r\\s]*(})',
+    '\\s*[\\n\\r]+\\s*',
+    '\\s*([{}():,>~+])\\s*',
+    '(calc\\(.*\\))',
+    '(\\s*\\/\\*[\\s\\S]*?\\*\\/)',
+  ];
+  content = content.replace(RegExp(selectors.join('|'), 'gi'), '$1$2$3$4');
+  return { fileRel, content };
+}
+
+export async function packScss(
+  content: string,
+  filePath: string,
+  root?: string
+) { return await packSass(content, filePath, root, false) }
+
+export async function packSass(
+  content: string,
+  filePath: string,
+  root?: string,
+  indentedSyntax = true
+) {
+  const { renderSync: renderSass } = await import('sass');
+  const { pretty, outdir } = await getConfig('sassOptions');
+  content = renderSass({
+    data: content,
+    indentedSyntax,
+    ...(!root && outdir && pretty ? {} : { outputStyle: 'compressed' })
+  }).css.toString();
+  if (!root) return content;
+  outdir != null && (
+    filePath = join(root, outdir, parse(filePath).name + '.css')
+  );
+  const fileRel = filePath.slice(root.length + 1).replace(/\\/g, '/');
+  return { fileRel, content };
+}
+
+export async function packJs(content: string, root: string, target: string) {
+  const { transpile: renderTs } = await import('typescript');
+  content = renderTs(content);
+  const fileRel = target.slice(root.length + 1).replace(/\\/g, '/');
+  return { fileRel, content };
+}

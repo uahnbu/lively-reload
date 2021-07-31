@@ -8,32 +8,64 @@ body, html {
   overflow: hidden;
 }
 
-#initMessage {
+#init-message {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-#fileMessage {
+#highlight-area {
   position: absolute;
-  right: 0;
-  bottom: 0;
-  border-radius: 8px 0 0 0;
-  padding: 8px 32px;
-  font-family: 'Courier New', Courier, monospace;
-  font-weight: 600;
-  opacity: 0;
-  z-index: 1;
+  z-index: 2;
 }
 
-#fileMessage.info {
-  background: #bd5c;
-  box-shadow: 0 0 0 4px #442c;
-  color: #442;
+.highlight-margin, .highlight-padding, .highlight-content {
+  animation: ShowHighlight .2s forwards;
 }
 
-#fileMessage.warn {
-  background: #f77c;
-  box-shadow: 0 0 0 4px #411c;
-  color: #411;
+.highlight {
+  position: absolute;
+  background: #4fd3;
+}
+
+.highlight.appear {
+  animation: ShowHighlight .2s forwards;
+}
+
+@keyframes ShowHighlight {
+  from { opacity: 0 }
+  to { opacity: 1 }
+}
+
+.highlight-horizontal, .highlight-vertical {
+  position: absolute;
+  width: 100%;
+  border-width: 2px 0;
+  border-style: dashed;
+  border-color: #f74;
+  box-sizing: border-box;
+  border-image: repeating-linear-gradient(to right, #f74 0, #f74 4px, transparent 4px, transparent 6px, #f53 6px, #f53 10px, transparent 10px, transparent 12px) 6 / 2px 0;
+}
+
+.highlight-vertical {
+  height: 100%;
+  border-width: 0 2px;
+  border-image: repeating-linear-gradient(to bottom, #f74 0, #f74 4px, transparent 4px, transparent 6px, #f53 6px, #f53 10px, transparent 10px, transparent 12px) 6 / 0 2px;
+}
+
+.highlight-margin {
+  position: absolute;
+  background: #8ff3;
+}
+
+.highlight-padding {
+  position: absolute;
+  background: #fb83;
+  border-color: #88f3;
+  border-style: solid;
+}
+
+.highlight-content {
+  position: absolute;
+  background: #8bf3;
 }
 
 #lively-pane {
@@ -64,7 +96,7 @@ body, html {
 
 #lively-error, #lively-warning, #lively-minimize {
   position: relative;
-  margin: .2rem;
+  padding: 0 .5rem;
   background: none;
   border: none;
   outline: none;
@@ -73,7 +105,7 @@ body, html {
   font-size: 2rem;
   cursor: pointer;
   user-select: none;
-  transition: opacity .1s;
+  transition: opacity .1s, transform .1s;
 }
 
 #lively-warning {
@@ -88,9 +120,13 @@ body, html {
   color: #112;
 }
 
-#lively-pane.error-hidden #lively-error,
-#lively-pane.warning-hidden #lively-warning {
+#error-toggle:checked ~ #lively-controls #lively-error,
+#warning-toggle:checked ~ #lively-controls #lively-warning {
   opacity: .6;
+}
+
+#minimize-toggle:checked ~ #lively-controls #lively-minimize {
+  transform: rotate(-180deg);
 }
 
 #lively-error:after, #lively-warning:after {
@@ -135,8 +171,8 @@ body, html {
   background: #fb3a;
 }
 
-#lively-pane.error-hidden .lively-error,
-#lively-pane.warning-hidden .lively-warning {
+#error-toggle:checked ~ #lively-center .lively-error,
+#warning-toggle:checked ~ #lively-center .lively-warning {
   display: none;
 }
 
@@ -148,4 +184,12 @@ iframe {
   height: 100%;
   border: none;
   font-family: Arial, Helvetica, sans-serif;
+  opacity: 0;
+  z-index: 0;
+  transition: opacity .5s, z-index .5s;
+}
+
+iframe[showing="true"] {
+  opacity: 1;
+  z-index: 1;
 }

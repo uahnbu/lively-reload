@@ -1,30 +1,50 @@
-import { extname, join, parse } from "path";
-import { existsSync, mkdirSync, writeFileSync } from "fs";
-import { getConfig } from "../../extension";
-import { isServerRunning, sendMessage } from "../../server";
-import { modifyCSS, modifyHTML, modifyJs } from "./modifyContent";
+import { extname, join, parse } from 'path';
+import { existsSync, mkdirSync, writeFileSync } from 'fs';
+import { getConfig } from '../../extension';
+import { isServerRunning, sendMessage } from '../../server';
 
-export function exportPug(filePath: string, content: string, root: string) {
-  const data = modifyHTML(filePath, content, root);
+export async function exportPug(
+  content: string,
+  filePath: string,
+  root: string
+) {
+  const { packPug } = await import('./packContent');
+  const data = await packPug(content, filePath, root);
   sendMessage('editHTML', data);
-  const { outdir } = getConfig('pugOptions');
+  const { outdir } = await getConfig('pugOptions');
   const target = getTarget(filePath, outdir, root);
   target && isServerRunning() && writeFileSync(target, data.content!);
 }
 
-export function exportSass(filePath: string, content: string, root: string) {
-  const data = modifyCSS(filePath, content, root);
-  sendMessage('injectCSS', data);
-  const { outdir } = getConfig('sassOptions');
-  const target = getTarget(filePath, outdir, root);
-  target && isServerRunning() && writeFileSync(target, data.content);
+export function exportScss(content: string, filePath: string, root: string) {
+  exportSass(content, filePath, root, 'packScss');
 }
 
-export function exportTs(filePath: string, content: string, root: string) {
-  const { outdir } = getConfig('typescriptOptions');
+export async function exportSass(
+  content: string,
+  filePath: string,
+  root: string,
+  packer: 'packScss' | 'packSass' = 'packSass'
+) {
+  const { [packer]: pack } = await import('./packContent');
+  sendMessage('injectCSS', await pack(content, filePath, root));
+  const { outdir } = await getConfig('sassOptions');
+  const target = getTarget(filePath, outdir, root);
+  target && isServerRunning() && (
+    writeFileSync(target, await pack(content, filePath) as string)
+  );
+}
+
+export async function exportTs(
+  content: string,
+  filePath: string,
+  root: string
+) {
+  const { packJs } = await import('./packContent');
+  const { outdir } = await getConfig('typescriptOptions');
   const target = getTarget(filePath, outdir, root);
   if (!target || !isServerRunning()) return;
-  const data = modifyJs(filePath, content, root);
+  const data = await packJs(filePath, content, root);
   writeFileSync(target, data.content);
   sendMessage('reloadJS', data.fileRel);
 }

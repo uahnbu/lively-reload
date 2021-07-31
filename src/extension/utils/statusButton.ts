@@ -3,8 +3,8 @@ import { START_COMMAND, CLOSE_COMMAND } from '..';
 
 const button = window.createStatusBarItem(StatusBarAlignment.Left);
 
-let timer: NodeJS.Timeout;
-let loadingStage: number;
+// let timer: NodeJS.Timeout;
+// let loadingStage: number;
 
 const statusButton = {
   load() { this.setDoStart(); button.show() },
@@ -13,7 +13,7 @@ const statusButton = {
     button.color = '#fff'
     button.tooltip = 'Click to start lively server';
     button.command = START_COMMAND;
-    clearInterval(timer);
+    // clearInterval(timer);
   },
   setLoading() {
     button.text = '$(vm-active) Lively Reload';

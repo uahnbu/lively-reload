@@ -12,12 +12,12 @@ const cursors = [
 
 export class Interact {
 
-  interact: { [key: string]: any } | null = null
+  interact: Interaction | null = null
   boxes: HTMLElement[]
   topBox: HTMLElement
   graspClassName: string
   minSize: number
-  snapDist: number
+  snapRange: number
 
   constructor(
     interactClassName: string, graspClassName: string,
@@ -32,12 +32,12 @@ export class Interact {
     
     style.classList.add('interact-cursors');
     document.head.appendChild(style);
-    const elements = document.querySelectorAll('.' + interactClassName);
-    this.boxes = [...elements] as HTMLElement[];
+    const sel = '.' + interactClassName;
+    this.boxes = [...document.querySelectorAll<HTMLElement>(sel)];
     this.topBox = this.boxes.reverse()[0];
     this.graspClassName = graspClassName;
     this.minSize = minSize;
-    this.snapDist = snapDist;
+    this.snapRange = snapDist;
   }
 
   /* 0    0    0    0    0
@@ -86,7 +86,7 @@ export class Interact {
       } = box;
       const state = this.mouseEdge(mx, my, x, y, w, h, 16);
       if (state) {
-        const interact = this.interact = {box} as K;
+        const interact = this.interact = {box} as Interaction;
         // x: 4, 1, -2
         // y: 4  3,  2
         // w: 4, 1, -2,  2, -1, -4
@@ -117,65 +117,68 @@ export class Interact {
     ratPos: number,
     pos: number | undefined,
     size: number | undefined,
-    posStr: string,
-    sizeStr: string
+    posStr: 'left' | 'top',
+    sizeStr: 'width' | 'height'
   ) {
-    const locOffset = 'offset' + posStr[0].toUpperCase() + posStr.slice(1);
-    const dimStrCamel = sizeStr[0].toUpperCase() + sizeStr.slice(1);
-    const abs = Math.abs, minSize = this.minSize, snapDist = this.snapDist;
+    const posCamel = posStr[0].toUpperCase() + posStr.slice(1) as PosCamel;
+    const sizeCamel = sizeStr[0].toUpperCase() + sizeStr.slice(1) as SizeCamel;
+    const posOffsetStr = 'offset' + posCamel as `offset${PosCamel}`;
+    const sizeOffsetStr = 'offset' + sizeCamel as `offset${SizeCamel}`;
+    const sizeInnerStr = 'inner' + sizeCamel as `inner${SizeCamel}`;
+    const abs = Math.abs, minSize = this.minSize, snapRange = this.snapRange;
     if (!size) {
       if (!pos) return;
       // Dragging
-      const edges = [].concat.apply([], (this.boxes as K[]).map(bbox => (
+      const edges = [0].concat(...this.boxes.map(bbox => (
         bbox === box
-          ? [0, (window as K)['inner' + dimStrCamel]]
-          : [bbox[locOffset], bbox[locOffset] + bbox['offset' + dimStrCamel]]
-      ) as never)) as number[];
-      let snapEdge = edges.find(edge => abs(ratPos - pos - edge) < snapDist);
-      if (!isNaN(snapEdge as any)) {
-        (box.style as K)[posStr] = snapEdge! + 'px';
+          ? [0, window[sizeInnerStr]]
+          : [bbox[posOffsetStr], bbox[posOffsetStr] + bbox[sizeOffsetStr]]
+      )));
+      let snapEdge = edges.find(edge => abs(ratPos - pos - edge) < snapRange);
+      if (typeof snapEdge === 'number') {
+        box.style[posStr] = snapEdge + 'px';
         return;
       }
-      const dim = (box as K)['offset' + dimStrCamel];
-      snapEdge = edges.find(edge => abs(ratPos - pos + dim - edge) < snapDist);
-      if (!isNaN(snapEdge as any)) {
-        (box.style as K)[posStr] = snapEdge! - dim + 'px';
-        return
+      const dim = box[sizeOffsetStr];
+      snapEdge = edges.find(edge => abs(ratPos - pos + dim - edge) < snapRange);
+      if (typeof snapEdge === 'number') {
+        box.style[posStr] = snapEdge - dim + 'px';
+        return;
       }
-      (box.style as K)[posStr] = ratPos - pos + 'px';
+      box.style[posStr] = ratPos - pos + 'px';
       return;
     }
     // Resizing
     if (pos) {
       let dist = size - ratPos;
-      const edges = [].concat.apply([], (this.boxes as K[]).map(bbox => (
+      const edges = [0].concat(...this.boxes.map(bbox => (
         bbox === box
           ? 0
-          : [bbox[locOffset], bbox[locOffset] + bbox['offset' + dimStrCamel]]
-      ) as never)) as number[];
-      const snapEdge = edges.find(edge => abs(ratPos - pos - edge) < snapDist);
-      !isNaN(snapEdge as any) && (dist = size - pos - snapEdge!);
+          : [bbox[posOffsetStr], bbox[posOffsetStr] + bbox[sizeOffsetStr]]
+      )));
+      const snapEdge = edges.find(edge => abs(ratPos - pos - edge) < snapRange);
+      typeof snapEdge === 'number' && (dist = size - pos - snapEdge);
       if (dist > minSize) {
-        (box.style as K)[posStr] = size - pos - dist + 'px';
-        (box.style as K)[sizeStr] = dist + 'px';
+        box.style[posStr] = size - pos - dist + 'px';
+        box.style[sizeStr] = dist + 'px';
         return;
       }
     }
     if (!pos) {
       let dist = ratPos - size;
-      const loc = (box as K)[locOffset];
-      const snapEdges = [].concat.apply([], (this.boxes as K[]).map(bbox => (
+      const loc = box[posOffsetStr];
+      const snapEdges = [0].concat(...this.boxes.map(bbox => (
         bbox === box
-        ? (window as K)['inner' + dimStrCamel]
-        : [bbox[locOffset], bbox[locOffset] + bbox['offset' + dimStrCamel]]
-      ) as never)) as number[];
-      const snapEdge = snapEdges.find(edge => abs(ratPos - edge) < snapDist);
-      !isNaN(snapEdge as any) && (dist = snapEdge! - loc);
-      if (dist > minSize) { (box.style as K)[sizeStr] = dist + 'px'; return }
+        ? (window as K)['inner' + sizeCamel]
+        : [bbox[posOffsetStr], bbox[posOffsetStr] + bbox[sizeOffsetStr]]
+      )));
+      const snapEdge = snapEdges.find(edge => abs(ratPos - edge) < snapRange);
+      typeof snapEdge === 'number' && (dist = snapEdge - loc);
+      if (dist > minSize) { box.style[sizeStr] = dist + 'px'; return }
     }
     // Current size is less than minimum
-    pos && ((box.style as K)[posStr] = size - pos - minSize + 'px');
-    (box.style as K)[sizeStr] = minSize + 'px';
+    pos && (box.style[posStr] = size - pos - minSize + 'px');
+    box.style[sizeStr] = minSize + 'px';
   }
 
   mouseIsInside(

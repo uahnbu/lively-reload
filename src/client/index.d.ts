@@ -11,6 +11,7 @@ interface IframeDoc extends Document {
   iframe: HTMLIFrameElement
   oldDOM: DiffDOMNode
   oldHTML: string
+  selections: Map<HTMLElement, HTMLElement[]>
 }
 
 interface DiffDOMNode {
@@ -63,4 +64,18 @@ interface AbsoluteData {
 interface MessagePane extends HTMLElement {
   originalSize: [number, number] | null
   holdTimer: NodeJS.Timeout
+}
+
+type HighlightType = 'margin' | 'padding' | 'content';
+
+type PosCamel = 'Left' | 'Top'
+type SizeCamel = 'Width' | 'Height'
+
+interface Interaction {
+  [key: string]: any,
+  box: HTMLElement,
+  x?: number,
+  y?: number,
+  w?: number,
+  h?: number
 }

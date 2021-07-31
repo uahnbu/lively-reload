@@ -1,4 +1,5 @@
 import { ExtensionContext, commands } from 'vscode';
+import { listenEditorEvents } from '../editor';
 import { startServer, closeServer, reloadServer } from '../server';
 import statusButton from './utils/statusButton';
 
@@ -9,8 +10,6 @@ export {
 	getConfig,
 	getActiveFile,
 	openBrowser,
-	openDevtools,
-	sendWindowsKey,
 	showMessage
 } from './utils/commands';
 
@@ -21,12 +20,12 @@ const RELOAD_COMMAND = 'livelyReload.reloadLively';
 
 export function activate(context: ExtensionContext) {
 	statusButton.load();
-	const subscriptions = [
+	context.subscriptions.push(...[
 		commands.registerCommand(START_COMMAND, () => startServer()),
 		commands.registerCommand(CLOSE_COMMAND, () => closeServer()),
 		commands.registerCommand(RELOAD_COMMAND, () => reloadServer())
-	];
-	context.subscriptions.push(...subscriptions);
+	]);
+	listenEditorEvents();
 }
 
 `╭───────╮

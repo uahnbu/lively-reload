@@ -2,13 +2,16 @@ import { window, workspace } from 'vscode';
 import {
   editorOnChange,
   editorOnSave,
-  activeFileOnChange,
-  selectionOnChange
+  selectionOnChange,
+  activeFileOnChange
 } from './utils/handleEditor';
 
-export { modifyHTML } from './utils/modifyContent';
+export { packHtml, packPug } from './utils/packContent';
 
-workspace.onDidChangeTextDocument(editorOnChange);
-workspace.onDidSaveTextDocument(editorOnSave);
-window.onDidChangeActiveTextEditor(activeFileOnChange);
-window.onDidChangeTextEditorSelection(selectionOnChange);
+export function listenEditorEvents() {
+  // TextDocumentChange must be listened before TextEditorSelectionChange
+  workspace.onDidChangeTextDocument(editorOnChange);
+  workspace.onDidSaveTextDocument(editorOnSave);
+  window.onDidChangeTextEditorSelection(selectionOnChange);
+  window.onDidChangeActiveTextEditor(activeFileOnChange);
+}

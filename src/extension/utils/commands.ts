@@ -1,31 +1,29 @@
 import { Uri, window, workspace } from 'vscode';
-import { extname, join } from 'path';
-import { modifyHTML } from '../../editor';
-import { exec } from 'child_process';
-import { existsSync, readFileSync } from 'fs';
-
-const modifierKeyMap: { [key: string]: string } = {
-  'ctrl': '^^^^', 'shift': '+', 'alt': '%'
-};
+import { extname } from 'path';
 
 export function getRoot() {
   return workspace.workspaceFolders?.[0].uri.fsPath;
 }
 
-export function getActiveFile() {
+export async function getActiveFile() {
   const activeTab = window.activeTextEditor?.document;
   if (!activeTab) return null;
   const activePath = activeTab.fileName;
   const ext = extname(activePath).toLowerCase();
   if (ext !== '.html' && ext !== '.pug') return null;
-  return modifyHTML(activePath, activeTab.getText(), getRoot());
+  const extCamel = ext[1].toUpperCase() + ext.slice(2);
+  const packer = 'pack' + extCamel as 'packHtml' | 'packPug';
+  const { [packer]: pack } = await import('../../editor');
+  return await pack(activeTab.getText(), activePath, getRoot());
 }
 
-export function getConfig(val: string | string[]) {
+export async function getConfig(val: string | string[]) {
+  const { join } = await import('path');
+  const { existsSync, readFileSync } = await import('fs');
   const vsConfigHub = workspace.getConfiguration('livelyReload');
   const config = typeof val === 'string'
-    ? vsConfigHub.get(val) as any
-    : val.reduce((c, e) => (c[e] = vsConfigHub.get(e), c), {} as K) as any;
+    ? vsConfigHub.get<any>(val)
+    : val.reduce<any>((c, e) => (c[e] = vsConfigHub.get(e), c), {} as K);
   const root = getRoot();
   if (!root) return config;
   const pkgPath = join(root, 'package.json');
@@ -44,29 +42,12 @@ export function getConfig(val: string | string[]) {
   return config;
 }
 
-export function openBrowser(url: string) {
-  if (!getConfig('openBrowser')) return;
+export async function openBrowser(url: string) {
+  const { exec } = await import('child_process');
+  if (! await getConfig('openBrowser')) return;
   const someProcess = process.platform as 'darwin' | 'win32';
   const cmd = { darwin: 'open', win32: 'start' }[someProcess] || 'xdg-open';
   exec(cmd + ' ' + Uri.parse(url.replace(/"/g, '\\"')));
-}
-
-export function openDevtools() {
-  const { enabled, keybinding } = getConfig('debug');
-  if (!enabled) return;
-  const keys = keybinding.split('+').map((key: string) => (
-    modifierKeyMap[key.toLowerCase()] || key
-  ));
-  sendWindowsKey(keys.join(''));
-}
-
-export function sendWindowsKey(keyString: string) {
-  if (process.platform !== 'win32') return;
-  const fileName = 'sCrIPt_' + Date.now() + '.vbs';
-  exec(`(echo|set /p="set shell=CreateObject("WScript.Shell"):${''
-    }shell.SendKeys "${keyString}":${''
-    }set fso=CreateObject("Scripting.FileSystemObject"):${''
-    }fso.DeleteFile Wscript.ScriptFullName") > ${fileName} & ${fileName}`);
 }
 
 type MessageType = 'info' | 'error' | 'warn';

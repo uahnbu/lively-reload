@@ -1,28 +1,32 @@
 import { Server } from 'http';
 import { Socket } from 'net';
-import { Express, static as staticDir } from 'express';
-import { join } from 'path';
-import {
-  getConfig,
-  getRoot,
-  statusButton,
-  openBrowser,
-  showMessage
-} from '../../extension';
-import { sendMessage, resurrect, killHeart } from './websocket';
+import { Express } from 'express';
 
 let app: Express, server: Server, sockets: Set<Socket>;
 let serverRunning = false;
 
 export function isServerRunning() { return serverRunning }
-export function initServerHandler(myApp: Express, myServer: Server, mySockets: Set<Socket>) {
-  app = myApp, server = myServer, sockets = mySockets
+export function initServerHandler(
+  myApp: Express,
+  myServer: Server,
+  mySockets: Set<Socket>
+) { app = myApp, server = myServer, sockets = mySockets }
+
+export async function reloadServer() {
+  const { sendMessage } = await import('./websocket');
+  sendMessage('reloadFull');
 }
 
-export function reloadServer() { sendMessage('reloadFull') }
-export function startServer() {
+export async function startServer() {
+  const { join } = await import('path');
+  const { static: staticDir } = await import('express');
+  const {
+    getRoot, getConfig, statusButton,
+    openBrowser, showMessage
+  } = await import('../../extension');
+  const { resurrect } = await import('./websocket');
+  const port = await getConfig('port');
   const root = getRoot();
-  const port = getConfig('port');
   app.use(staticDir(join(__dirname, 'static')));
   root && app.use(staticDir(root));
   openBrowser('http://127.0.0.1:' + port);
@@ -39,7 +43,9 @@ export function startServer() {
   statusButton.setLoading();
 }
 
-export function closeServer() {
+export async function closeServer() {
+  const { statusButton } = await import('../../extension');
+  const { killHeart } = await import('./websocket');
   killHeart();
   server.close();
   serverRunning = false;

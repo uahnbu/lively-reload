@@ -5,7 +5,7 @@
 [![Total Installs](https://img.shields.io/visual-studio-marketplace/i/uahnbu.lively-reload)](https://marketplace.visualstudio.com/items?itemName=uahnbu.lively-reload)
 [![Rating](https://img.shields.io/visual-studio-marketplace/r/uahnbu.lively-reload)](https://marketplace.visualstudio.com/items?itemName=uahnbu.lively-reload)
 [![Issues](https://img.shields.io/github/issues/uahnbu/lively-reload)](https://github.com/uahnbu/lively-reload/issues)
-<a href="https://www.buymeacoffee.com/uahnbu" target="_blank"><img src="https://www.buymeacoffee.com/assets/img/custom_images/purple_img.png" alt="Buy Me A Coffee" height="24"></a>
+[![Buy me a coffee](https://img.shields.io/badge/Buy%20me%20a%20coffee-bd5fff?logo=buymeacoffee)](https://www.buymeacoffee.com/uahnbu)
 
 ## Features
 * **Live preview of your `.html`, `.css` files without the need to save.**

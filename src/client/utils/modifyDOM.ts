@@ -11,16 +11,17 @@ const dirtyLinks: { [key: string]: string } = {};
 export async function createIframe(content: string) {
   const iframe = document.createElement('iframe');
   document.body.appendChild(iframe);
-  iframe.contentDocument!.readyState !== 'complete' && (
+  iframe.contentDocument?.readyState !== 'complete' && (
     await new Promise(resolve => iframe.addEventListener('load', resolve))
   );
 
   const iframeDoc = iframe.contentDocument as IframeDoc;
   log('Opening a new HTML/Pug file...', 'info');
   iframeDoc.iframe = iframe;
+  iframeDoc.selections = new Map;
   showIframe(iframeDoc);
   loadContent(iframeDoc, content);
-  return iframeDoc as IframeDoc;
+  return iframeDoc;
 }
 
 async function loadContent(iframeDoc: IframeDoc, content: string) {
@@ -70,7 +71,11 @@ export function modifyHTML(iframeDoc: IframeDoc, content: string) {
   diffIframe(iframeDoc, newHTML);
 }
 
-export function writeStyle(el: HTMLElement, fileRel?: string, content?: string) {
+export function writeStyle(
+  el: HTMLElement,
+  fileRel?: string,
+  content?: string
+) {
   let links = [...el.querySelectorAll('link')];
   if (fileRel) {
     const id = generateStyleId(fileRel);
@@ -110,20 +115,20 @@ export function writeStyle(el: HTMLElement, fileRel?: string, content?: string) 
 
 function extractContent(htmlContent: string, part: HtmlMainTag): string {
   if (part === 'body') {
-    const bodyMatch = htmlContent.match(/(?<=<body>).*(?=<\/body>)/i);
+    const bodyMatch = htmlContent.match(/(?<=<body.*?>).*(?=<\/body>)/i);
     if (bodyMatch) return bodyMatch[0];
 
     const bodyExtracted = htmlContent
-      .replace(/.*<html>(.*)<\/html>.*/i, '$1')
-      .replace(/<(head|style|title).*>.*?<\/\1>|<(link|meta).*?>/gi, '');
+      .replace(/.*<html.*?>(.*)<\/html>.*/i, '$1')
+      .replace(/<(head|style|title).*?>.*?<\/\1>|<(link|meta).*?>/gi, '');
     return bodyExtracted;
   }
   if (part === 'head') {
-    const headMatch = htmlContent.match(/(?<=<head>).*(?=<\/head>)/i);
+    const headMatch = htmlContent.match(/(?<=<head.*?>).*(?=<\/head>)/i);
     if (headMatch) return headMatch[0];
 
     const headExtracted = htmlContent
-      .match(/<(style|title).*>.*?<\/\1>|<(link|meta).*?>/gi);
+      .match(/<(style|title).*?>.*?<\/\1>|<(link|meta).*?>/gi);
     return headExtracted?.join('') || '';
   }
   const head = '<head>' + extractContent(htmlContent, 'head') + '</head>';

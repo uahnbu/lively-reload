@@ -4,13 +4,17 @@
   <link rel="stylesheet" href="lively_assets/style.css">
 </head>
 <body>
-  <div id="initMessage">Establishing the connection...</div>
+  <div id="init-message">Establishing the connection...</div>
+  <div id="highlight-area"></div>
   <div id="lively-pane" class="interactive">
+    <input type="checkbox" id="error-toggle" hidden>
+    <input type="checkbox" id="warning-toggle" hidden>
+    <input type="checkbox" id="minimize-toggle" hidden>
     <div id="lively-center" class="graspable"></div>
     <div id="lively-controls" class="graspable">
-      <button id="lively-error" data-indicator=0>&#xf057;</button>
-      <button id="lively-warning" data-indicator=0>&#xf071;</button>
-      <button id="lively-minimize">&#xf0d7;</button>
+      <label id="lively-error" for="error-toggle" data-indicator=0>&#xf057;</label>
+      <label id="lively-warning" for="warning-toggle" data-indicator=0>&#xf071;</label>
+      <label id="lively-minimize" for="minimize-toggle">&#xf0d7;</label>
     </div>
   </div>
   <script src="lively_script.js"></script>

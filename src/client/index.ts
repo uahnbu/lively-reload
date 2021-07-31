@@ -7,13 +7,14 @@ import {
   setDebug,
   showIframe,
   showMessage,
-  log,
-  maximizeMessagePane
+  maximizeMessagePane,
+  log
 } from './utils/modifyGUI';
+import { highlight } from './utils/highlight';
 
 export const MIN_BOX_SIZE = 144;
 
-const messagePane = document.querySelector('#lively-pane') as MessagePane;
+const messagePane = document.querySelector<MessagePane>('#lively-pane')!;
 const interact = new Interact('interactive', 'graspable', MIN_BOX_SIZE);
 document.addEventListener('mousedown', e => {
   const { state } = interact.mouseDown(e) || {};
@@ -44,21 +45,25 @@ function wsInit() {
     ws.events[task] && ws.events[task](data);
   });
   ws.send('connect');
-  document.querySelector('#initMessage')!.textContent = (
+  document.querySelector('#init-message')!.textContent = (
     'Connection established. Open a .html/.pug file to begin.'
   );
 
   ws.on('switchHTML', async ({ filePath, content, messages }: AbsoluteData) => {
-    const initMessage = document.querySelector('#initMessage');
+    const initMessage = document.querySelector('#init-message');
     initMessage && document.body.removeChild(initMessage);
     showMessage([{ msg: filePath, type: 'info' } as MsgData].concat(messages));
     documents[filePath] && showIframe(documents[filePath]);
     content != null && (documents[filePath] ||= await createIframe(content));
+    highlight(documents[filePath]);
   });
 
   ws.on('editHTML', ({ filePath, content, messages }: AbsoluteData) => (
     showMessage(messages),
-    content != null && modifyHTML(documents[filePath], content)
+    content != null && (
+      modifyHTML(documents[filePath], content),
+      highlight(documents[filePath])
+    )
   ));
 
   ws.on('injectCSS', ({ fileRel, content }: RelativeData) => {
@@ -95,3 +100,9 @@ function wsInit() {
 
   ws.on('showMessage', (data: MsgData[]) => showMessage(data));
 }
+
+document.addEventListener('resize', () => {
+  const sel = 'iframe[showing=true]';
+  const iframe = document.querySelector<HTMLIFrameElement>(sel)!;
+  highlight(iframe.contentDocument as IframeDoc);
+});
