@@ -4,6 +4,7 @@ import { Socket } from 'net';
 import { getActiveFile, getConfig, statusButton } from '../../extension';
 import { isServerRunning } from './handleServer';
 import WebSocket = require('ws');
+import { focusContent } from '../../extension/utils/commands';
 
 const wsServer = new Server({ noServer: true });
 const webSockets = new Set<any>();
@@ -11,23 +12,28 @@ let heartBeat: NodeJS.Timeout;
 
 wsServer.on('connect', ws => {
   ws.on('message', async (msg: string) => {
-    if (msg !== 'connect') return;
-    webSockets.add(ws);
-    const activeFile = await getActiveFile();
-    activeFile && sendMessage('switchHTML', activeFile);
-    statusButton.setDoClose();
+    const { task, data } = JSON.parse(msg);
+    if (task === 'connect') {
+      webSockets.add(ws);
+      const activeFile = await getActiveFile();
+      activeFile && sendMessage('switchHTML', activeFile);
+      statusButton.setDoClose();
+    }
+    if (task === 'focus') {
+      const { position, filePath } = data;
+      focusContent(position, filePath);
+    }
   });
-  ws.on('close', () => (
-    webSockets.delete(ws),
-    webSockets.size === 0 && isServerRunning() && statusButton.setLoading()
-  ));
+  ws.on('close', () => {
+    webSockets.delete(ws);
+    if (webSockets.size !== 0 || !isServerRunning()) return;
+    statusButton.setLoading();
+  });
 });
 
 export function resurrect() {
   heartBeat = setInterval(beat, 200);
-  async function beat() {
-    sendMessage('alive', await getConfig(['debug']));
-  }
+  async function beat() { sendMessage('alive', await getConfig(['debug'])) }
 }
 
 export function killHeart() { clearInterval(heartBeat) }

@@ -17,55 +17,62 @@ body, html {
   z-index: 2;
 }
 
-.highlight-margin, .highlight-padding, .highlight-content {
-  animation: ShowHighlight .2s forwards;
-}
-
 .highlight {
   position: absolute;
-  background: #4fd3;
+  box-shadow: inset 0 0 0 1px #09c;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.highlight:before, .highlight:after {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  border: dashed 1px #c90;
+  border-image: repeating-linear-gradient(to right, #c90 0, #c90 3px, transparent 3px, transparent 6px) 6 / 1px 0;
+  box-sizing: border-box;
+}
+
+.highlight:after {
+  border-image: repeating-linear-gradient(to bottom, #c90 0, #c90 3px, transparent 3px, transparent 6px) 6 / 0 1px;
 }
 
 .highlight.appear {
-  animation: ShowHighlight .2s forwards;
+  background: transparent;
+  animation: ShowHighlight 1s;
 }
 
 @keyframes ShowHighlight {
-  from { opacity: 0 }
-  to { opacity: 1 }
+  0%, 100% { background: transparent }
+  30%, 70% { background: #09c6 }
 }
 
 .highlight-horizontal, .highlight-vertical {
   position: absolute;
+  left: -9px;
+  width: 9999px;
+  box-shadow: inset 0 0 0 1px #09c;
+}
+
+.highlight-horizontal:before, .highlight-vertical:before {
+  content: '';
+  position: absolute;
   width: 100%;
-  border-width: 2px 0;
-  border-style: dashed;
-  border-color: #f74;
+  height: 100%;
+  border: dashed 1px #c90;
+  border-image: repeating-linear-gradient(to right, #c90 0, #c90 3px, transparent 3px, transparent 6px) 6 / 1px 0;
   box-sizing: border-box;
-  border-image: repeating-linear-gradient(to right, #f74 0, #f74 4px, transparent 4px, transparent 6px, #f53 6px, #f53 10px, transparent 10px, transparent 12px) 6 / 2px 0;
 }
 
 .highlight-vertical {
-  height: 100%;
-  border-width: 0 2px;
-  border-image: repeating-linear-gradient(to bottom, #f74 0, #f74 4px, transparent 4px, transparent 6px, #f53 6px, #f53 10px, transparent 10px, transparent 12px) 6 / 0 2px;
+  top: -9px;
+  height: 9999px;
 }
 
-.highlight-margin {
-  position: absolute;
-  background: #8ff3;
-}
-
-.highlight-padding {
-  position: absolute;
-  background: #fb83;
-  border-color: #88f3;
-  border-style: solid;
-}
-
-.highlight-content {
-  position: absolute;
-  background: #8bf3;
+.highlight-vertical:before {
+  border-image: repeating-linear-gradient(to bottom, #c90 0, #c90 3px, transparent 3px, transparent 6px) 6 / 0 1px;
 }
 
 #lively-pane {

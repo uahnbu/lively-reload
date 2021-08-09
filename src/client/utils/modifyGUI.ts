@@ -47,11 +47,10 @@ export function log(msg: string | any[], type: string) {
 }
 
 export function showIframe(iframeDoc: IframeDoc) {
-  const iframes = [...document.querySelectorAll('iframe')];
+  const iframes = document.querySelectorAll('iframe');
   const docIframe = iframeDoc.iframe;
   iframes.forEach(iframe => iframe.setAttribute('showing', 'false'));
   docIframe.setAttribute('showing', 'true');
-
 }
 
 export function maximizeMessagePane(width?: number, height?: number) {

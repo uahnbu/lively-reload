@@ -4,9 +4,9 @@ import {
   TextEditorSelectionChangeEvent,
   TextEditor
 } from 'vscode';
+import { extname } from 'path';
 import { getRoot } from '../../extension';
 import { isServerRunning, sendMessage } from '../../server';
-import { extname } from 'path';
 
 const exportableExtensions = new Set(['.pug', '.scss', '.sass', '.ts']);
 
@@ -38,15 +38,26 @@ export function editorOnChange(event: TextDocumentChangeEvent) {
   changingContent = true;
 }
 
-export function selectionOnChange(event: TextEditorSelectionChangeEvent) {
+export async function selectionOnChange(event: TextEditorSelectionChangeEvent) {
   if (!isServerRunning()) return;
   const { fileName, getText } = event.textEditor.document;
   const ext = extname(fileName).toLowerCase();
-  if (changingContent || ext !== '.html') {
+  if (changingContent) {
     changingContent = false;
     return;
   }
-  handleChange(getText(), fileName, 'file');
+  if (ext === '.html') {
+    const { packHtml } = await import('./packContent');
+    const { filePath, highlightIds } = await packHtml(getText(), fileName);
+    sendMessage('highlightHtml', { filePath, highlightIds });
+  }
+  if (ext === '.css') {
+    const root = getRoot();
+    if (!root || !fileName.startsWith(root)) return;
+    const { packCss } = await import('./packContent');
+    const { fileRel, highlightIds } = await packCss(getText(), fileName, root);
+    sendMessage('highlightCss', { fileRel, highlightIds });
+  }
 }
 
 export function activeFileOnChange(event?: TextEditor) {
@@ -58,25 +69,22 @@ export function activeFileOnChange(event?: TextEditor) {
 
 type Change = 'file' | 'tab';
 async function handleChange(content: string, filePath: string, type: Change) {
-  type PackerExt = 'Css' | 'Scss' | 'Sass' | 'Html' | 'Pug';
+  type PackerExtHtml = 'Html' | 'Pug';
+  type PackerExtCss = 'Css' | 'Scss' | 'Sass';
   const root = getRoot();
   const ext = extname(filePath).toLowerCase();
   const extCamel = ext[1].toUpperCase() + ext.slice(2);
-  const packer = 'pack' + extCamel as `pack${PackerExt}`;
-  switch (ext) {
-    case '.css':
-    case '.scss':
-    case '.sass': {
-      if (!root || !isServerRunning || !filePath.startsWith(root)) break;
-      const { [packer]: pack } = await import('./packContent');
-      sendMessage('injectCSS', await pack(content, filePath, root));
-      break;
-    }
-    case '.html':
-    case '.pug': {
-      const { [packer]: pack } = await import('./packContent');
-      const data = await pack(content, filePath, root);
-      sendMessage(type === 'file' ? 'editHTML' : 'switchHTML', data);
-    }
+  const packer = 'pack' + extCamel as `pack${PackerExtHtml | PackerExtCss}`;
+  if (ext === '.html' || ext === '.pug') {
+    type Packer = `pack${PackerExtHtml}`;
+    const { [packer as Packer]: pack } = await import('./packContent');
+    const data = await pack(content, filePath, root);
+    sendMessage(type === 'file' ? 'editHTML' : 'switchHTML', data);
+  }
+  if (ext === '.css' || ext === '.scss' || ext === '.sass') {
+    type Packer = `pack${PackerExtCss}`;
+    if (!root || !isServerRunning || !filePath.startsWith(root)) return;
+    const { [packer as Packer]: pack } = await import('./packContent');
+    sendMessage('injectCSS', await pack(content, filePath, root));
   }
 }

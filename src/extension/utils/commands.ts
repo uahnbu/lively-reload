@@ -1,5 +1,16 @@
-import { Uri, window, workspace } from 'vscode';
+import {
+  window, workspace, Uri,
+  Position, Selection, TextEditorRevealType
+} from 'vscode';
 import { extname } from 'path';
+
+type MessageType = 'info' | 'error' | 'warn';
+export function showMessage(msg: string, type: MessageType, options?: object) {
+  options ||= { title: 'Dismiss' };
+  type === 'info' && window.showInformationMessage(msg, options);
+  type === 'error' && window.showErrorMessage(msg, options);
+  type === 'warn' && window.showWarningMessage(msg, options);
+}
 
 export function getRoot() {
   return workspace.workspaceFolders?.[0].uri.fsPath;
@@ -50,10 +61,20 @@ export async function openBrowser(url: string) {
   exec(cmd + ' ' + Uri.parse(url.replace(/"/g, '\\"')));
 }
 
-type MessageType = 'info' | 'error' | 'warn';
-export function showMessage(msg: string, type: MessageType, options?: object) {
-  options ||= { title: 'Dismiss' };
-  type === 'info' && window.showInformationMessage(msg, options);
-  type === 'error' && window.showErrorMessage(msg, options);
-  type === 'warn' && window.showWarningMessage(msg, options);
+export function focusContent(position: number, filePath: string) {
+  const editor = window.activeTextEditor;
+  const currentPath = editor?.document.fileName;
+  if (!editor || currentPath !== filePath) return;
+  const lines = editor.document.getText().split(/\r?\n/);
+  let line = -1;
+  while (true) {
+    const lineLen = lines[++line].trimStart().length;
+    if (lineLen > position) break;
+    if ((position -= lineLen) === 0) { position = 1; break }
+  }
+  const character = position + lines[line].search(/\S|$/);
+  const newPosition = new Position(line, character);
+  const revealType = TextEditorRevealType.InCenter;
+  editor.selection = new Selection(newPosition, newPosition);
+  editor.revealRange(editor.selection, revealType);
 }

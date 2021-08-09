@@ -11,7 +11,6 @@ interface IframeDoc extends Document {
   iframe: HTMLIFrameElement
   oldDOM: DiffDOMNode
   oldHTML: string
-  selections: Map<HTMLElement, HTMLElement[]>
 }
 
 interface DiffDOMNode {
@@ -59,6 +58,13 @@ interface AbsoluteData {
   content?: string
   filePath: string
   messages: MsgData[]
+  highlightIds: (number | string)[]
+}
+
+interface HighlightData {
+  highlightIds: (number | string)[]
+  filePath?: string
+  fileRel?: string
 }
 
 interface MessagePane extends HTMLElement {
@@ -66,16 +72,27 @@ interface MessagePane extends HTMLElement {
   holdTimer: NodeJS.Timeout
 }
 
-type HighlightType = 'margin' | 'padding' | 'content';
+interface Highlight extends HTMLDivElement {
+  target?: HTMLElement
+}
+
+interface Bound {
+  width: number
+  height: number
+  left: number
+  top: number
+}
+
+type HighlightPart = '' | '-horizontal' | '-vertical'
 
 type PosCamel = 'Left' | 'Top'
 type SizeCamel = 'Width' | 'Height'
 
 interface Interaction {
-  [key: string]: any,
-  box: HTMLElement,
-  x?: number,
-  y?: number,
-  w?: number,
+  [key: string]: any
+  box: HTMLElement
+  x?: number
+  y?: number
+  w?: number
   h?: number
 }

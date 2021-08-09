@@ -1,6 +1,8 @@
 import { DiffDOM, nodeToObj } from 'diff-dom';
 import { YAMLDOM } from './yaml';
 import { log, showIframe } from './modifyGUI';
+import { highlightHtml } from './highlight';
+import { sendMessage } from '..';
 
 const yamlDOM = new YAMLDOM;
 const yamlifyDOM = yamlDOM.yamlify.bind(yamlDOM);
@@ -8,7 +10,7 @@ const yamlifyDOM = yamlDOM.yamlify.bind(yamlDOM);
 const dd = new DiffDOM;
 const dirtyLinks: { [key: string]: string } = {};
 
-export async function createIframe(content: string) {
+export async function createIframe(content: string, filePath: string) {
   const iframe = document.createElement('iframe');
   document.body.appendChild(iframe);
   iframe.contentDocument?.readyState !== 'complete' && (
@@ -18,7 +20,13 @@ export async function createIframe(content: string) {
   const iframeDoc = iframe.contentDocument as IframeDoc;
   log('Opening a new HTML/Pug file...', 'info');
   iframeDoc.iframe = iframe;
-  iframeDoc.selections = new Map;
+  iframeDoc.addEventListener('scroll', () => highlightHtml(iframeDoc), true);
+  iframeDoc.addEventListener('click', e => {
+    const target = e.target as HTMLElement | null;
+    const position = +(target?.getAttribute('lively-position') || -1);
+    if (position === -1) return;
+    sendMessage('focus', { position, filePath });
+  });
   showIframe(iframeDoc);
   loadContent(iframeDoc, content);
   return iframeDoc;
@@ -100,10 +108,8 @@ export function writeStyle(
     if (!content) return;
     
     const style = document.createElement('style');
-    style.id = id;
-    style.textContent = content;
-    el.insertBefore(style, link);
-    el.removeChild(link);
+    style.id = id, style.textContent = content;
+    el.insertBefore(style, link), el.removeChild(link);
     log('Replacing link tag with style tag id "' + id + '"...', 'info');
   });
 

@@ -10,7 +10,7 @@ import {
   maximizeMessagePane,
   log
 } from './utils/modifyGUI';
-import { highlight } from './utils/highlight';
+import { highlightHtml, highlightCss } from './utils/highlight';
 
 export const MIN_BOX_SIZE = 144;
 
@@ -44,27 +44,40 @@ function wsInit() {
     const { task, data } = JSON.parse(msg);
     ws.events[task] && ws.events[task](data);
   });
-  ws.send('connect');
+  sendMessage('connect');
   document.querySelector('#init-message')!.textContent = (
     'Connection established. Open a .html/.pug file to begin.'
   );
 
-  ws.on('switchHTML', async ({ filePath, content, messages }: AbsoluteData) => {
+  ws.on('switchHTML', async (data: AbsoluteData) => {
+    const { filePath, content, messages, highlightIds } = data;
     const initMessage = document.querySelector('#init-message');
     initMessage && document.body.removeChild(initMessage);
     showMessage([{ msg: filePath, type: 'info' } as MsgData].concat(messages));
     documents[filePath] && showIframe(documents[filePath]);
-    content != null && (documents[filePath] ||= await createIframe(content));
-    highlight(documents[filePath]);
+    content != null && (
+      documents[filePath] = await createIframe(content, filePath)
+    );
+    highlightHtml(documents[filePath], highlightIds);
   });
 
-  ws.on('editHTML', ({ filePath, content, messages }: AbsoluteData) => (
-    showMessage(messages),
+  ws.on('editHTML', (data: AbsoluteData) => {
+    const { filePath, content, messages, highlightIds } = data;
+    showMessage(messages);
     content != null && (
       modifyHTML(documents[filePath], content),
-      highlight(documents[filePath])
-    )
-  ));
+      highlightHtml(documents[filePath], highlightIds)
+    );
+  });
+
+  ws.on('highlightHtml', ({ highlightIds, filePath }: HighlightData) => {
+    const iframeDoc = documents[filePath!];
+    highlightHtml(iframeDoc, highlightIds);
+  });
+
+  ws.on('highlightCss', ({ highlightIds, fileRel }: HighlightData) => {
+    highlightCss(highlightIds as string[], fileRel!);
+  });
 
   ws.on('injectCSS', ({ fileRel, content }: RelativeData) => {
     for (const htmlPath in documents) {
@@ -83,7 +96,7 @@ function wsInit() {
       if (!script) continue;
       log('Reloading a document containing the saved script...', 'info');
       document.body.removeChild(iframeDoc.iframe);
-      documents[htmlPath] = await createIframe(iframeDoc.oldHTML);
+      documents[htmlPath] = await createIframe(iframeDoc.oldHTML, htmlPath);
     }
   });
 
@@ -101,8 +114,12 @@ function wsInit() {
   ws.on('showMessage', (data: MsgData[]) => showMessage(data));
 }
 
+export function sendMessage(task: string, data: any = null) {
+  ws.send(JSON.stringify({ task, data }));
+}
+
 document.addEventListener('resize', () => {
   const sel = 'iframe[showing=true]';
   const iframe = document.querySelector<HTMLIFrameElement>(sel)!;
-  highlight(iframe.contentDocument as IframeDoc);
+  highlightHtml(iframe.contentDocument as IframeDoc);
 });

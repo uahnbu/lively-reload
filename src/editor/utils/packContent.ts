@@ -1,8 +1,7 @@
-import { extname, join, parse } from 'path';
+import { join, parse } from 'path';
 import HtmlValidate from 'html-validate/dist/htmlvalidate';
 import { RuleConfig } from 'html-validate/dist/config';
 import { getConfig } from '../../extension';
-import { Message } from 'html-validate/dist/reporter';
 
 let htmlvalidate: HtmlValidate;
 
@@ -16,13 +15,14 @@ async function constructHtmlValidate() {
   });
 }
 
-export async function packHtml(
-  content: string,
-  filePath: string,
-  root?: string
-) {
-  const ext = extname(filePath).toLowerCase();
-  if (ext !== '.html') return await packPug(content, filePath, root);
+export function packHtml(content: string, filePath: string): Promise<{
+  filePath: string
+  messages: { msg: string, type: string }[]
+  content?: string
+  highlightIds?: (number | string)[]
+}>
+
+export async function packHtml(content: string, filePath: string) {
   await constructHtmlValidate();
   const report = htmlvalidate.validateString(content);
   const messages = report.results?.[0]?.messages?.map(data => {
@@ -33,10 +33,10 @@ export async function packHtml(
   }) || [];
   if (!report.valid) return { filePath, messages };
 
-  const { highlightHtml } = await import('./highlightHtml');
-  content = highlightHtml(content);
-  return { filePath, content, messages };
-
+  const { highlight } = await import('./highlightContent');
+  let highlightIds: (number | string)[];
+  ({ content, highlightIds } = highlight(content, 'html'));
+  return { filePath, content, messages, highlightIds };
 }
 
 export async function packPug(
@@ -64,14 +64,8 @@ export async function packPug(
   return { filePath, content, messages: [] };
 }
 
-export async function packCss(
-  content: string,
-  filePath: string,
-  root?: string
-) {
-  const ext = extname(filePath).toLowerCase();
-  if (ext !== '.css') return packSass(content, filePath, root);
-  const fileRel = filePath.slice(root!.length + 1).replace(/\\/g, '/');
+export async function packCss(content: string, filePath: string, root: string) {
+  const fileRel = filePath.slice(root.length + 1).replace(/\\/g, '/');
   const selectors = [
     '(".*?"|\'.*?\')',
     ';[\\n\\r\\s]*(})',
@@ -80,8 +74,10 @@ export async function packCss(
     '(calc\\(.*\\))',
     '(\\s*\\/\\*[\\s\\S]*?\\*\\/)',
   ];
+  const { highlight } = await import('./highlightContent');
+  const highlightIds = highlight(content, 'css');
   content = content.replace(RegExp(selectors.join('|'), 'gi'), '$1$2$3$4');
-  return { fileRel, content };
+  return { fileRel, content, highlightIds };
 }
 
 export async function packScss(
