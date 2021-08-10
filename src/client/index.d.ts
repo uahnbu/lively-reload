@@ -8,6 +8,7 @@ interface WebSocket {
 }
 
 interface IframeDoc extends Document {
+  filePath: string
   iframe: HTMLIFrameElement
   oldDOM: DiffDOMNode
   oldHTML: string

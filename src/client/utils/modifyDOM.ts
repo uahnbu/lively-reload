@@ -10,7 +10,7 @@ const yamlifyDOM = yamlDOM.yamlify.bind(yamlDOM);
 const dd = new DiffDOM;
 const dirtyLinks: { [key: string]: string } = {};
 
-export async function createIframe(content: string, filePath: string) {
+export async function createIframe(filePath: string, content: string) {
   const iframe = document.createElement('iframe');
   document.body.appendChild(iframe);
   iframe.contentDocument?.readyState !== 'complete' && (
@@ -18,14 +18,15 @@ export async function createIframe(content: string, filePath: string) {
   );
 
   const iframeDoc = iframe.contentDocument as IframeDoc;
-  log('Opening a new HTML/Pug file...', 'info');
+  log(content, `Opening HTML/Pug file ${filePath}...`);
+  iframeDoc.filePath = filePath;
   iframeDoc.iframe = iframe;
   iframeDoc.addEventListener('scroll', () => highlightHtml(iframeDoc), true);
   iframeDoc.addEventListener('click', e => {
     const target = e.target as HTMLElement | null;
     const position = +(target?.getAttribute('lively-position') || -1);
     if (position === -1) return;
-    sendMessage('focus', { position, filePath });
+    sendMessage('focus', { filePath, position });
   });
   showIframe(iframeDoc);
   loadContent(iframeDoc, content);
@@ -73,7 +74,7 @@ function migrateScript(el: HTMLElement, oldScript: HTMLScriptElement) {
 export function modifyHTML(iframeDoc: IframeDoc, content: string) {
   const newDoc = document.implementation.createHTMLDocument();
   const newHTML = newDoc.documentElement;
-  log('Changing HTML content...', 'info');
+  log(content, `Changing HTML content of file ${iframeDoc}...`);
   newHTML.innerHTML = extractContent(content, 'html');
   writeStyle(newDoc.head);
   diffIframe(iframeDoc, newHTML);
@@ -93,7 +94,7 @@ export function writeStyle(
       link.href.slice(location.href.length) === fileRel
     ));
     if (!links.length) {
-      log('Updating style tag id "' + id + '"...', 'info');
+      log(content!, `Updating style tag id "${id}"...`);
       const style = el.querySelector('#' + id);
       style && (style.textContent = content!);
       return;
@@ -108,9 +109,9 @@ export function writeStyle(
     if (!content) return;
     
     const style = document.createElement('style');
+    log(content, `Replacing link tag with style tag id "${id}"...`);
     style.id = id, style.textContent = content;
     el.insertBefore(style, link), el.removeChild(link);
-    log('Replacing link tag with style tag id "' + id + '"...', 'info');
   });
 
   function generateStyleId(url: string) {

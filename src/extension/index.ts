@@ -6,11 +6,12 @@ import statusButton from './utils/statusButton';
 export { statusButton };
 
 export {
+	showMessage,
 	getRoot,
-	getConfig,
 	getActiveFile,
+	getConfig,
 	openBrowser,
-	showMessage
+	focusContent
 } from './utils/commands';
 
 export const START_COMMAND = 'livelyReload.startLively';

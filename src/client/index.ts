@@ -4,11 +4,8 @@ import { Interact } from './utils/interact';
 import { YAML } from './utils/yaml';
 import { createIframe, modifyHTML, writeStyle } from './utils/modifyDOM';
 import {
-  setDebug,
-  showIframe,
-  showMessage,
-  maximizeMessagePane,
-  log
+  setDebug, log, showIframe,
+  showMessage, maximizeMessagePane,
 } from './utils/modifyGUI';
 import { highlightHtml, highlightCss } from './utils/highlight';
 
@@ -56,7 +53,7 @@ function wsInit() {
     showMessage([{ msg: filePath, type: 'info' } as MsgData].concat(messages));
     documents[filePath] && showIframe(documents[filePath]);
     content != null && (
-      documents[filePath] = await createIframe(content, filePath)
+      documents[filePath] = await createIframe(filePath, content)
     );
     highlightHtml(documents[filePath], highlightIds);
   });
@@ -81,7 +78,7 @@ function wsInit() {
 
   ws.on('injectCSS', ({ fileRel, content }: RelativeData) => {
     for (const htmlPath in documents) {
-      writeStyle(documents[htmlPath].head, fileRel, content)
+      writeStyle(documents[htmlPath].head, fileRel, content);
     }
   });
 
@@ -94,9 +91,9 @@ function wsInit() {
         script.src.slice(location.href.length) === fileRel
       ));
       if (!script) continue;
-      log('Reloading a document containing the saved script...', 'info');
+      log(`Reloading file ${htmlPath} due to a changed script...`, 'info');
       document.body.removeChild(iframeDoc.iframe);
-      documents[htmlPath] = await createIframe(iframeDoc.oldHTML, htmlPath);
+      documents[htmlPath] = await createIframe(htmlPath, iframeDoc.oldHTML);
     }
   });
 
