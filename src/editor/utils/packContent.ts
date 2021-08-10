@@ -1,5 +1,5 @@
 import { join, parse } from 'path';
-import HtmlValidate from 'html-validate/dist/htmlvalidate';
+import { HtmlValidate } from 'html-validate';
 import { RuleConfig } from 'html-validate/dist/config';
 import { getConfig } from '../../extension';
 
@@ -7,12 +7,10 @@ let htmlvalidate: HtmlValidate;
 
 async function constructHtmlValidate() {
   if (htmlvalidate) return;
+  const { HtmlValidate } = await import('html-validate');
   const html5 = await import('html-validate/elements/html5.json');
-  const htmlRules = await import('../assets/htmlRules.json');
-  htmlvalidate = new HtmlValidate({
-    elements: [html5],
-    rules: htmlRules as RuleConfig
-  });
+  const rules = await import('../assets/htmlRules.json') as RuleConfig;
+  htmlvalidate = new HtmlValidate({ elements: [html5], rules });
 }
 
 export function packHtml(content: string, filePath: string): Promise<{
