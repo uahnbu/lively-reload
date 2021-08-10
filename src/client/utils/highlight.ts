@@ -21,11 +21,12 @@ export function highlightHtml(iframeDoc: IframeDoc, ids?: (number | string)[]) {
   }
   const newSelections: Map<HTMLElement, Highlight> = new Map;
   const sel = ids.map(id => getIdAttribute(id)).join()
-  const highlights = sel.length
-    ? [...iframeDoc.querySelectorAll<HTMLElement>(sel)]
-    : [];
+  const highlights = (
+    (sel.length ? [...iframeDoc.querySelectorAll<HTMLElement>(sel)] : [])
+    .filter(el => iframeDoc.body.contains(el))
+  );
   let hasScrolled = false;
-  log('Highlighting the following selectors: ' + sel, 'info');
+  log(highlights, 'Highlighting the following selectors: ' + sel);
   highlights.forEach(target => {
     const styles = getHighlightStyles(target);
     if (selections.has(target)) {
@@ -41,7 +42,7 @@ export function highlightHtml(iframeDoc: IframeDoc, ids?: (number | string)[]) {
     addHighlightPart(highlight, '-vertical', verticalStyles);
     newSelections.set(target, highlight);
     highlight.target = target;
-    !hasScrolled && (hasScrolled = true, scrollToView(target, highlightStyles));
+    !hasScrolled && (hasScrolled = scrollToView(target, highlightStyles));
   });
   selections.forEach(highlight => {
     delete highlight.target;
@@ -49,6 +50,7 @@ export function highlightHtml(iframeDoc: IframeDoc, ids?: (number | string)[]) {
   });
   selections.clear();
   selections = newSelections;
+  !hasScrolled && Scroller.highlight();
 }
 
 export function highlightCss(ids: string[], fileRel: string) {
@@ -133,7 +135,7 @@ function addHighlightPart(el: HTMLElement, suffix: HighlightPart, styles: K) {
   return div;
 }
 
-function scrollToView(el: HTMLElement, bound: Bound) {
+function scrollToView(el: HTMLElement, bound: Bound): boolean {
   if (isDebugging()) {
     const outerHTML = el.outerHTML;
     const content = outerHTML.slice(0, outerHTML.length - el.innerHTML.length);
@@ -152,7 +154,7 @@ function scrollToView(el: HTMLElement, bound: Bound) {
     scrollY === 'auto' || scrollY === 'scroll' ||
     isMainParent && scrollX !== 'hidden' && scrollY !== 'hidden'
   );
-  if (!isScrollable) { !isMainParent && scrollToView(parent, bound); return }
+  if (!isScrollable) { return !isMainParent && scrollToView(parent, bound) }
   let vx = 0, vy = 0, vw, vh;
   if (isMainParent) {
     ({ innerWidth: vw, innerHeight: vh } = window);
@@ -170,6 +172,7 @@ function scrollToView(el: HTMLElement, bound: Bound) {
     dy > 0 && Scroller.setTargetY(parent, dy);
     dy + height < vh && Scroller.setTargetY(parent, dy + height - vh);
   } else Scroller.setTargetY(parent, dy + height / 2 - vh / 2);
+  return true;
 }
 
 class Scroller {
