@@ -8,9 +8,8 @@ const minimizeIcon = document.querySelector<HTMLElement>('#lively-minimize')!;
 
 let debug = false;
 
-export function setDebug(debugEnabled: boolean) {
-  debug = debugEnabled;
-}
+export function setDebug(debugEnabled: boolean) { debug = debugEnabled }
+export function isDebugging() { return debug }
 
 export function showMessage(data: string | MsgData[], type: MsgType = 'info') {
   let errors = 0, warnings = 0;
@@ -21,7 +20,6 @@ export function showMessage(data: string | MsgData[], type: MsgType = 'info') {
     errorIcon.dataset.indicator = warningIcon.dataset.indicator = '0';
     return;
   }
-  messagePane.hidden = false;
   data.forEach(({ msg, type }) => {
     const div = document.createElement('div');
     div.classList.add('lively-message', 'graspable');
@@ -30,6 +28,7 @@ export function showMessage(data: string | MsgData[], type: MsgType = 'info') {
     div.textContent = msg;
     messageCenter.appendChild(div);
   });
+  messagePane.hidden = false;
   errorIcon.dataset.indicator = '' + errors;
   warningIcon.dataset.indicator = '' + warnings;
 }

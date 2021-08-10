@@ -61,7 +61,7 @@ export async function openBrowser(url: string) {
   exec(cmd + ' ' + Uri.parse(url.replace(/"/g, '\\"')));
 }
 
-export function focusContent(position: number, filePath: string) {
+export function focusContent(filePath: string, position: number) {
   const editor = window.activeTextEditor;
   const currentPath = editor?.document.fileName;
   if (!editor || currentPath !== filePath) return;

@@ -1,10 +1,12 @@
 import { Server } from 'ws';
 import { IncomingMessage } from 'http';
 import { Socket } from 'net';
-import { getActiveFile, getConfig, statusButton } from '../../extension';
+import {
+  getActiveFile, getConfig,
+  statusButton, focusContent
+} from '../../extension';
 import { isServerRunning } from './handleServer';
 import WebSocket = require('ws');
-import { focusContent } from '../../extension/utils/commands';
 
 const wsServer = new Server({ noServer: true });
 const webSockets = new Set<any>();
@@ -20,8 +22,8 @@ wsServer.on('connect', ws => {
       statusButton.setDoClose();
     }
     if (task === 'focus') {
-      const { position, filePath } = data;
-      focusContent(position, filePath);
+      const { filePath, position } = data;
+      focusContent(filePath, position);
     }
   });
   ws.on('close', () => {

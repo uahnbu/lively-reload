@@ -1,3 +1,5 @@
+import { isDebugging, log } from "./modifyGUI";
+
 const highlightArea = document.querySelector<HTMLElement>('#highlight-area')!;
 
 const styleProperties = [
@@ -10,112 +12,43 @@ const styleProperties = [
 let selections: Map<HTMLElement, Highlight> = new Map;
 
 export function highlightHtml(iframeDoc: IframeDoc, ids?: (number | string)[]) {
-  const attribute = '[lively-position="';
-  const sel = ids
-    ? ids.map(id => typeof id === 'string' ? id : attribute + id + '"]').join()
-    : '[lively-highlight]';
+  if (!ids) {
+    selections.forEach(highlight => {
+      const styles = getHighlightStyles(highlight.target!);
+      rehighlight(highlight, styles);
+    });
+    return;
+  }
+  const newSelections: Map<HTMLElement, Highlight> = new Map;
+  const sel = ids.map(id => getIdAttribute(id)).join()
   const highlights = sel.length
     ? [...iframeDoc.querySelectorAll<HTMLElement>(sel)]
     : [];
-  const newSelections: Map<HTMLElement, Highlight> = new Map;
-
+  let hasScrolled = false;
+  log('Highlighting the following selectors: ' + sel, 'info');
   highlights.forEach(target => {
-    const { width, height, left, top } = target.getBoundingClientRect();
-    const computedStyle = window.getComputedStyle(target);
-    const attributes: K = {};
-    styleProperties.forEach(attr => {
-      attributes[attr] = +computedStyle.getPropertyValue(attr).slice(0, -2);
-    });
-    const {
-      'border-radius'    : r,
-      'border-top-width' : bt, 'border-bottom-width': bb,
-      'border-left-width': bl, 'border-right-width' : br,
-      'padding-top' : pt, 'padding-bottom': pb,
-      'padding-left': pl, 'padding-right' : pr,
-      'margin-top'  : mt, 'margin-bottom' : mb,
-      'margin-left' : ml, 'margin-right'  : mr
-    } = attributes;
-
-    const highlight = addHighlightPart(highlightArea, '', {
-      width: width + ml + mr, height: height + mt + mb,
-      left: left - ml, top: top - mt, borderRadius: r
-    });
-    highlight.target = target;
-    addHighlightPart(highlight, '-horizontal', {
-      height: height - bt - bb - pt - pb + 2,
-      top: mt + pt + bt - 1
-    });
-    addHighlightPart(highlight, '-vertical', {
-      width: width - bl - br - pl - pr + 2,
-      left: ml + pl + bl - 1
-    });
-
+    const styles = getHighlightStyles(target);
     if (selections.has(target)) {
       const highlight = selections.get(target)!;
-      delete highlight.target;
-      highlightArea.removeChild(highlight);
+      rehighlight(highlight, styles);
       selections.delete(target);
-    } else {
-      target.setAttribute('lively-highlight', '');
-      scrollToView(target, {
-        width: width + ml + mr, height: height + mt + mb,
-        left: left - ml, top: top - mt
-      });
+      newSelections.set(target, highlight);
+      return;
     }
+    const { highlightStyles, horizontalStyles, verticalStyles } = styles;
+    const highlight = addHighlightPart(highlightArea, '', highlightStyles);
+    addHighlightPart(highlight, '-horizontal', horizontalStyles);
+    addHighlightPart(highlight, '-vertical', verticalStyles);
     newSelections.set(target, highlight);
+    highlight.target = target;
+    !hasScrolled && (hasScrolled = true, scrollToView(target, highlightStyles));
   });
-
   selections.forEach(highlight => {
-    highlight.target?.removeAttribute('lively-highlight');
+    delete highlight.target;
     highlightArea.removeChild(highlight);
   });
   selections.clear();
   selections = newSelections;
-
-  function addHighlightPart(el: HTMLElement, suffix: HighlightPart, styles: K) {
-    const div = document.createElement('div') as Highlight;
-    div.classList.add('highlight' + suffix);
-    for (const attr in styles) {
-      (div.style as K)[attr] = styles[attr] + 'px';
-    }
-    el.appendChild(div);
-    return div;
-  }
-
-  function scrollToView(el: HTMLElement, bound: Bound) {
-    if (!ids) return;
-    const { width, height, left, top } = bound;
-    const parent = el.parentElement!;
-    const isMainParent = parent.tagName.toUpperCase() === 'BODY';
-    const styles = iframeDoc.defaultView!.getComputedStyle(parent);
-    const scrollX = styles.getPropertyValue('overflow-x');
-    const scrollY = styles.getPropertyValue('overflow-y');
-    const isScrollable = (
-      scrollX === 'auto' || scrollX === 'scroll' ||
-      scrollY === 'auto' || scrollY === 'scroll' ||
-      isMainParent && scrollX !== 'hidden' && scrollY !== 'hidden'
-    );
-    let vx, vy, vw, vh;
-    if (isMainParent) {
-      vx = vy = 0;
-      ({ innerWidth: vw, innerHeight: vh } = iframeDoc.defaultView!);
-    } else {
-      const { width, height, top, left } = parent.getBoundingClientRect();
-      if (!isScrollable) scrollToView(parent, bound);
-      else scrollToView(parent, { width, height, top, left });
-      [vx, vy, vw, vh] = [left, top, width, height];
-    }
-    if (!isScrollable) return;
-    const dx = left - vx, dy = top - vy;
-    if (width > vw) {
-      dx > 0 && Scroller.setTargetX(parent, dx);
-      dx + width < vw && Scroller.setTargetX(parent, dx + width - vw);
-    } else Scroller.setTargetX(parent, dx + width / 2 - vw / 2);
-    if (height > vh) {
-      dy > 0 && Scroller.setTargetY(parent, dy);
-      dy + height < vh && Scroller.setTargetY(parent, dy + height - vh);
-    } else Scroller.setTargetY(parent, dy + height / 2 - vh / 2);
-  }
 }
 
 export function highlightCss(ids: string[], fileRel: string) {
@@ -137,6 +70,106 @@ export function highlightCss(ids: string[], fileRel: string) {
     const encodedUrl = btoa(encodeURIComponent(url)).replace(/[+/=]/g, '_');
     return 'lively-style-' + encodedUrl;
   }
+}
+
+function getIdAttribute(id: number | string) {
+  if (typeof id === 'string') return id;
+  return '[lively-position="' + id + '"]';
+}
+
+function getHighlightStyles(target: HTMLElement) {
+  const { width, height, left, top } = target.getBoundingClientRect();
+  const computedStyle = window.getComputedStyle(target);
+  const attributes: K = {};
+  styleProperties.forEach(attr => {
+    attributes[attr] = +computedStyle.getPropertyValue(attr).slice(0, -2);
+  });
+  const {
+    'border-radius'    : r,
+    'border-top-width' : bt, 'border-bottom-width': bb,
+    'border-left-width': bl, 'border-right-width' : br,
+    'padding-top' : pt, 'padding-bottom': pb,
+    'padding-left': pl, 'padding-right' : pr,
+    'margin-top'  : mt, 'margin-bottom' : mb,
+    'margin-left' : ml, 'margin-right'  : mr
+  } = attributes;
+  return {
+    highlightStyles: {
+      width: width + ml + mr, height: height + mt + mb,
+      left: left - ml, top: top - mt, borderRadius: r
+    },
+    horizontalStyles: {
+      height: height - bt - bb - pt - pb + 2,
+      top: mt + pt + bt - 1
+    },
+    verticalStyles: {
+      width: width - bl - br - pl - pr + 2,
+      left: ml + pl + bl - 1
+    }
+  };
+}
+
+function rehighlight(highlight: Highlight, styles: K) {
+  const horizontalSel = '.highlight-horizontal';
+  const verticalSel = '.highlight-vertical';
+  const horizontal = highlight.querySelector<HTMLElement>(horizontalSel)!;
+  const vertical = highlight.querySelector<HTMLElement>(verticalSel)!;
+  const { highlightStyles, horizontalStyles, verticalStyles } = styles;
+  setHighlightPart(highlight, highlightStyles);
+  setHighlightPart(horizontal, horizontalStyles);
+  setHighlightPart(vertical, verticalStyles);
+}
+
+function setHighlightPart(el: HTMLElement, styles: K) {
+  const style = el.style as K;
+  for (const attr in styles) { style[attr] = styles[attr] + 'px' }
+}
+
+function addHighlightPart(el: HTMLElement, suffix: HighlightPart, styles: K) {
+  const div = document.createElement('div') as Highlight;
+  div.classList.add('highlight' + suffix);
+  setHighlightPart(div, styles);
+  el.appendChild(div);
+  return div;
+}
+
+function scrollToView(el: HTMLElement, bound: Bound) {
+  if (isDebugging()) {
+    const outerHTML = el.outerHTML;
+    const content = outerHTML.slice(0, outerHTML.length - el.innerHTML.length);
+    const dummy = content.replace(/'.*?'|".*?"/g, x => 'x'.repeat(x.length));
+    const elementTag = content.slice(0, 1 + dummy.indexOf('>'));
+    log(`Focusing on HTML element ${elementTag}...`, 'info');
+  }
+  const { width, height, left, top } = bound;
+  const parent = el.parentElement!;
+  const isMainParent = parent.tagName.toUpperCase() === 'BODY';
+  const styles = window.getComputedStyle(parent);
+  const scrollX = styles.getPropertyValue('overflow-x');
+  const scrollY = styles.getPropertyValue('overflow-y');
+  const isScrollable = (
+    scrollX === 'auto' || scrollX === 'scroll' ||
+    scrollY === 'auto' || scrollY === 'scroll' ||
+    isMainParent && scrollX !== 'hidden' && scrollY !== 'hidden'
+  );
+  if (!isScrollable) { !isMainParent && scrollToView(parent, bound); return }
+  let vx = 0, vy = 0, vw, vh;
+  if (isMainParent) {
+    ({ innerWidth: vw, innerHeight: vh } = window);
+  } else {
+    const { width, height, top, left } = parent.getBoundingClientRect();
+    scrollToView(parent, { width, height, top, left });
+    [vx, vy, vw, vh] = [left, top, width, height];
+  }
+  const dx = left - vx, dy = top - vy;
+  if (width > vw) {
+    dx > 0 && Scroller.setTargetX(parent, dx);
+    dx + width < vw && Scroller.setTargetX(parent, dx + width - vw);
+  } else Scroller.setTargetX(parent, dx + width / 2 - vw / 2);
+  if (height > vh) {
+    dy > 0 && Scroller.setTargetY(parent, dy);
+    dy + height < vh && Scroller.setTargetY(parent, dy + height - vh);
+  } else Scroller.setTargetY(parent, dy + height / 2 - vh / 2);
 }
 
 class Scroller {
