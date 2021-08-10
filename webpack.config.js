@@ -45,7 +45,7 @@ module.exports = [
       }),
       new CopyPlugin({
         patterns: [
-          'src/client/index.html',
+          'src/client/index.lively-reload.html',
           { from: 'src/client/assets', to: 'lively_assets' }
         ]
       })

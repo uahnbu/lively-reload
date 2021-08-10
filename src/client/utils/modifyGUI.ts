@@ -6,7 +6,7 @@ const errorIcon = document.querySelector<HTMLElement>('#lively-error')!;
 const warningIcon = document.querySelector<HTMLElement>('#lively-warning')!;
 const minimizeIcon = document.querySelector<HTMLElement>('#lively-minimize')!;
 
-let debug = false;
+let debug = true;
 
 export function setDebug(debugEnabled: boolean) { debug = debugEnabled }
 export function isDebugging() { return debug }

@@ -27,7 +27,10 @@ export async function startServer() {
   const { resurrect } = await import('./websocket');
   const port = await getConfig('port');
   const root = getRoot();
-  app.use(staticDir(join(__dirname, 'static')));
+  const staticPath = join(__dirname, 'static');
+  const indexPath = join(staticPath, 'index.lively-reload.html');
+  app.get('/', (_req, res) => res.sendFile(indexPath));
+  app.use(staticDir(staticPath));
   root && app.use(staticDir(root));
   openBrowser('http://127.0.0.1:' + port);
   server.listen(port, () => showMessage(
