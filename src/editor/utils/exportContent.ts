@@ -40,11 +40,11 @@ export async function exportTs(
   filePath: string,
   root: string
 ) {
-  const { packJs } = await import('./packContent');
+  const { packTs } = await import('./packContent');
   const { outdir } = await getConfig('typescriptOptions');
   const target = getTarget(filePath, outdir, root);
   if (!target || !isServerRunning()) return;
-  const data = await packJs(filePath, content, root);
+  const data = await packTs(filePath, content, root);
   writeFileSync(target, data.content);
   sendMessage('reloadJS', data.fileRel);
 }

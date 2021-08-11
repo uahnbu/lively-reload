@@ -53,7 +53,7 @@ function wsInit() {
     showMessage([{ msg: filePath, type: 'info' } as MsgData].concat(messages));
     documents[filePath] && showIframe(documents[filePath]);
     content != null && (
-      documents[filePath] = await createIframe(filePath, content)
+      documents[filePath] = await createIframe(content, filePath)
     );
     highlightHtml(documents[filePath], highlightIds);
   });
@@ -76,9 +76,9 @@ function wsInit() {
     highlightCss(highlightIds as string[], fileRel!);
   });
 
-  ws.on('injectCSS', ({ fileRel, content }: RelativeData) => {
+  ws.on('injectCSS', ({ content, fileRel }: RelativeData) => {
     for (const htmlPath in documents) {
-      writeStyle(documents[htmlPath].head, fileRel, content);
+      writeStyle(documents[htmlPath].head, content, fileRel);
     }
   });
 
@@ -93,7 +93,7 @@ function wsInit() {
       if (!script) continue;
       log(`Reloading file ${htmlPath} due to a changed script...`, 'info');
       document.body.removeChild(iframeDoc.iframe);
-      documents[htmlPath] = await createIframe(htmlPath, iframeDoc.oldHTML);
+      documents[htmlPath] = await createIframe(iframeDoc.oldHTML, htmlPath);
     }
   });
 

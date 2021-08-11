@@ -1,23 +1,5 @@
-import { IncomingMessage, createServer } from 'http';
-import { Socket } from 'net';
-import * as express from 'express';
-import { initServerHandler } from './utils/handleServer';
-import { handleConnection } from './utils/websocket';
-
-const app = express();
-const server = createServer(app);
-const sockets = new Set<Socket>();
-
-initServerHandler(app, server, sockets);
-
-server.on('connection', socket => (
-  sockets.add(socket),
-  socket.once('close', () => sockets.delete(socket))
-));
-type UpgradeArgs = [IncomingMessage, Socket, Buffer];
-server.on('upgrade', (...args: UpgradeArgs) => handleConnection(...args));
-
 export {
+  setVirtualDir,
   isServerRunning,
   startServer,
   closeServer,

@@ -1,38 +1,66 @@
-import { Server } from 'http';
+import { createServer, IncomingMessage, Server } from 'http';
 import { Socket } from 'net';
-import { Express } from 'express';
+import * as express from 'express';
+import { dirname, join } from 'path';
+import {
+  getRoot, getConfig, openBrowser,
+  showMessage, statusButton
+} from '../../extension';
+import {
+  handleConnection, resurrect,
+  killHeart, sendMessage
+} from './websocket';
 
-let app: Express, server: Server, sockets: Set<Socket>;
+const sockets: Set<Socket> = new Set;
+let app: express.Express, server: Server;
+let virtualDir = '';
 let serverRunning = false;
 
+export function setVirtualDir(path: string) { virtualDir = dirname(path) }
 export function isServerRunning() { return serverRunning }
-export function initServerHandler(
-  myApp: Express,
-  myServer: Server,
-  mySockets: Set<Socket>
-) { app = myApp, server = myServer, sockets = mySockets }
 
-export async function reloadServer() {
-  const { sendMessage } = await import('./websocket');
-  sendMessage('reloadFull');
+async function initApp(getRoot: () => string | undefined) {
+  if (typeof app !== 'undefined') return app;
+  const staticDir = join(__dirname, 'static');
+  app = express();
+  app.get('/*', (req, res) => {
+    console.log(req);
+    if (req.url === '/') {
+      console.log('Url: /');
+      res.sendFile(join(staticDir, 'index.html')); return }
+    if (req.url.startsWith('/lively_assets')) {
+      const assetRel = req.url.slice('/lively_assets'.length);
+      console.log('Destination: ', join(staticDir, assetRel));
+      res.sendFile(join(staticDir, assetRel));
+      return;
+    }
+    const root = getRoot();
+    if (root) {
+      const { referer } = req.headers;
+      console.log('referer: ', referer);
+      console.log('virtualDir: ', virtualDir);
+      console.log('Destination: ', join((!referer && virtualDir) || root, req.url));
+      res.sendFile(join((!referer && virtualDir) || root, req.url));
+      return;
+    }
+    console.log('No root');
+    virtualDir && res.sendFile(join(virtualDir, req.url));
+  });
 }
 
+export async function reloadServer() { sendMessage('reloadFull') }
+
 export async function startServer() {
-  const { join } = await import('path');
-  const { static: staticDir } = await import('express');
-  const {
-    getRoot, getConfig, statusButton,
-    openBrowser, showMessage
-  } = await import('../../extension');
-  const { resurrect } = await import('./websocket');
   const port = await getConfig('port');
-  const root = getRoot();
-  const staticPath = join(__dirname, 'static');
-  const indexPath = join(staticPath, 'index.lively-reload.html');
-  app.get('/', (_req, res) => res.sendFile(indexPath));
-  app.use(staticDir(staticPath));
-  root && app.use(staticDir(root));
+  initApp(getRoot);
   openBrowser('http://127.0.0.1:' + port);
+  server = createServer(app),
+  server.on('connection', socket => (
+    sockets.add(socket),
+    socket.once('close', () => sockets.delete(socket))
+  ));
+  type UpgradeArgs = [IncomingMessage, Socket, Buffer];
+  server.on('upgrade', (...args: UpgradeArgs) => handleConnection(...args));
   server.listen(port, () => showMessage(
     'Server started on http://127.0.0.1:' + port + '.',
     'info'
@@ -47,11 +75,10 @@ export async function startServer() {
 }
 
 export async function closeServer() {
-  const { statusButton } = await import('../../extension');
-  const { killHeart } = await import('./websocket');
   killHeart();
   server.close();
   serverRunning = false;
   sockets.forEach(socket => socket.destroy());
+  sockets.clear();
   statusButton.setDoStart();
 }

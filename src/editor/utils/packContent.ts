@@ -49,16 +49,8 @@ export async function packPug(
     '-var _sAfeVar=0;\n$1&&_sAfeVar++<' + maxLoop
   );
   content = renderPug(content, {pretty});
-  if (!root) return { filePath, content, messages: [] };
-  const dist = outdir ? join(root, outdir) : root;
-  content = content.replace(/(?<=(href|src)=").+?(?=")/gi, linkRel => {
-    const linkPath = linkRel.includes(':') ? linkRel : join(dist, linkRel);
-    if (!linkPath.startsWith(root)) return linkRel;
-    return linkPath.slice(root.length + 1).replace(/\\/g, '/');
-  });
-  outdir != null && (
-    filePath = join(root, outdir, parse(filePath).name + '.html')
-  );
+  if (!root || outdir == null) return { filePath, content, messages: [] };
+  filePath = join(root, outdir, parse(filePath).name + '.html')
   return { filePath, content, messages: [] };
 }
 
@@ -105,7 +97,7 @@ export async function packSass(
   return { fileRel, content };
 }
 
-export async function packJs(content: string, root: string, target: string) {
+export async function packTs(content: string, root: string, target: string) {
   const { transpile: renderTs } = await import('typescript');
   content = renderTs(content);
   const fileRel = target.slice(root.length + 1).replace(/\\/g, '/');

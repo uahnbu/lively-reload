@@ -10,7 +10,7 @@ const yamlifyDOM = yamlDOM.yamlify.bind(yamlDOM);
 const dd = new DiffDOM;
 const dirtyLinks: { [key: string]: string } = {};
 
-export async function createIframe(filePath: string, content: string) {
+export async function createIframe(content: string, filePath: string) {
   const iframe = document.createElement('iframe');
   document.body.appendChild(iframe);
   iframe.contentDocument?.readyState !== 'complete' && (
@@ -26,7 +26,10 @@ export async function createIframe(filePath: string, content: string) {
     const target = e.target as HTMLElement | null;
     const position = +(target?.getAttribute('lively-position') || -1);
     if (position === -1) return;
-    sendMessage('focus', { filePath, position });
+    sendMessage('focus', { position, filePath });
+  });
+  iframe.contentWindow!.addEventListener('beforeunload', () => {
+    sendMessage('virtualPath', filePath);
   });
   showIframe(iframeDoc);
   loadContent(iframeDoc, content);
@@ -82,8 +85,8 @@ export function modifyHTML(iframeDoc: IframeDoc, content: string) {
 
 export function writeStyle(
   el: HTMLElement,
-  fileRel?: string,
-  content?: string
+  content?: string,
+  fileRel?: string
 ) {
   let links = [...el.querySelectorAll('link')];
   if (fileRel) {

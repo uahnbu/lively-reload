@@ -80,6 +80,7 @@ async function handleChange(content: string, filePath: string, type: Change) {
     const { [packer as Packer]: pack } = await import('./packContent');
     const data = await pack(content, filePath, root);
     sendMessage(type === 'file' ? 'editHTML' : 'switchHTML', data);
+    return;
   }
   if (ext === '.css' || ext === '.scss' || ext === '.sass') {
     type Packer = `pack${PackerExtCss}`;

@@ -2,7 +2,7 @@ import {
   window, workspace, Uri,
   Position, Selection, TextEditorRevealType
 } from 'vscode';
-import { extname } from 'path';
+import { extname, join } from 'path';
 
 type MessageType = 'info' | 'error' | 'warn';
 export function showMessage(msg: string, type: MessageType, options?: object) {
@@ -29,7 +29,6 @@ export async function getActiveFile() {
 }
 
 export async function getConfig(val: string | string[]) {
-  const { join } = await import('path');
   const { existsSync, readFileSync } = await import('fs');
   const vsConfigHub = workspace.getConfiguration('livelyReload');
   const config = typeof val === 'string'
@@ -61,7 +60,7 @@ export async function openBrowser(url: string) {
   exec(cmd + ' ' + Uri.parse(url.replace(/"/g, '\\"')));
 }
 
-export function focusContent(filePath: string, position: number) {
+export function focusContent(position: number, filePath: string) {
   const editor = window.activeTextEditor;
   const currentPath = editor?.document.fileName;
   if (!editor || currentPath !== filePath) return;

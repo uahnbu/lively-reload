@@ -13,10 +13,10 @@ module.exports = [
     entry: './src/client',
     output: {
       path: path.resolve(__dirname, 'out/static'),
-      filename: 'lively_script.js',
+      filename: 'script.js',
       libraryTarget: 'umd',
     },
-    devtool: false,
+    devtool: 'eval',
     resolve: {
       extensions: ['.ts', '.js']
     },
@@ -43,12 +43,7 @@ module.exports = [
           },
         },
       }),
-      new CopyPlugin({
-        patterns: [
-          'src/client/index.lively-reload.html',
-          { from: 'src/client/assets', to: 'lively_assets' }
-        ]
-      })
+      new CopyPlugin({ patterns: ['src/client/assets'] })
     ]
   },
   {
