@@ -1,6 +1,6 @@
 import { DiffDOM, nodeToObj } from 'diff-dom';
 import { YAMLDOM } from './yaml';
-import { log, showIframe } from './modifyGUI';
+import { log, addShowingAttribute } from './modifyGUI';
 import { highlightHtml } from './highlight';
 import { sendMessage } from '..';
 
@@ -10,17 +10,29 @@ const yamlifyDOM = yamlDOM.yamlify.bind(yamlDOM);
 const dd = new DiffDOM;
 const dirtyLinks: { [key: string]: string } = {};
 
-export async function createIframe(content: string, filePath: string) {
+export async function createIframe(
+  content : string,
+  filePath: string,
+  fileRel : string
+) {
   const iframe = document.createElement('iframe');
+  // Set the iframe location to localhost instead of about:blank to allow
+  // replacing history state.
+  // Iframe src must be specified before iframe is added to DOM.
+  iframe.src = 'liveLy_blank.html';
   document.body.appendChild(iframe);
-  iframe.contentDocument?.readyState !== 'complete' && (
-    await new Promise(resolve => iframe.addEventListener('load', resolve))
-  );
+  await new Promise(resolve => {
+    iframe.contentWindow!.addEventListener('load', resolve);
+  });
 
   const iframeDoc = iframe.contentDocument as IframeDoc;
   log(content, `Opening HTML/Pug file ${filePath}...`);
-  iframeDoc.filePath = filePath;
-  iframeDoc.iframe = iframe;
+  // Set the URL of the iframe without redirecting so as to correctly set up
+  // hrefs and srcs and resource requests.
+  // If fileRel is empty string, there's no folder opened in VSCode.
+  fileRel && iframe.contentWindow!.history.replaceState({}, '', fileRel);
+  Object.assign(iframeDoc, { filePath, fileRel, iframe });
+  // Set useCapture to true to capature childNodes' scrollings.
   iframeDoc.addEventListener('scroll', () => highlightHtml(iframeDoc), true);
   iframeDoc.addEventListener('click', e => {
     const target = e.target as HTMLElement | null;
@@ -29,9 +41,8 @@ export async function createIframe(content: string, filePath: string) {
     sendMessage('focus', { position, filePath });
   });
   iframe.contentWindow!.addEventListener('beforeunload', () => {
-    sendMessage('virtualPath', filePath);
   });
-  showIframe(iframeDoc);
+  addShowingAttribute(iframeDoc);
   loadContent(iframeDoc, content);
   return iframeDoc;
 }
@@ -50,6 +61,8 @@ async function loadContent(iframeDoc: IframeDoc, content: string) {
   activateScripts(iframeDoc.body);
 }
 
+// Scripts added to DOM through innerHTML are not auto-executed and needed to be
+// activated manually.
 async function activateScripts(el: HTMLElement) {
   const scripts = [...el.querySelectorAll('script')];
   log('Loading ' + scripts.length + ' script(s)...', 'info');
@@ -58,14 +71,13 @@ async function activateScripts(el: HTMLElement) {
   } catch(e) { throw Error(e) }
 }
 
+// Replace old scripts added through innerHTML by new ones.
 function migrateScript(el: HTMLElement, oldScript: HTMLScriptElement) {
   return new Promise((resolve, reject) => {
     const script = el.ownerDocument.createElement('script');
     const { src, textContent } = oldScript;
-    src && (
-      script.src = src.startsWith(location.href) &&
-      src.slice(location.href.length) || src
-    );
+    const location = el.ownerDocument.defaultView!.location.origin;
+    script.src = src.startsWith(location) ? src.slice(location.length) : src;
     script.textContent = textContent;
     script.onload = resolve;
     script.onerror = reject;
@@ -83,19 +95,28 @@ export function modifyHTML(iframeDoc: IframeDoc, content: string) {
   diffIframe(iframeDoc, newHTML);
 }
 
+// Reconvert previously edited link to the stored style contents when the iframe
+// is reloaded.
+export function writeStyle(el: HTMLElement): void
+// Replace a specific link by new a style with the edited content in VSCode.
+export function writeStyle(
+  el: HTMLElement,
+  content: string,
+  fileRel: string
+): void
+
 export function writeStyle(
   el: HTMLElement,
   content?: string,
   fileRel?: string
 ) {
+  const location = window.location.href;
   let links = [...el.querySelectorAll('link')];
   if (fileRel) {
     const id = generateStyleId(fileRel);
     dirtyLinks[id] = content!;
-    links = links.filter(link => (
-      link.href.startsWith(location.href) &&
-      link.href.slice(location.href.length) === fileRel
-    ));
+    links = links.filter(link => link.href === location + fileRel);
+    // If there's already been an injected style for fileRel, update it.
     if (!links.length) {
       log(content!, `Updating style tag id "${id}"...`);
       const style = el.querySelector('#' + id);
@@ -105,18 +126,23 @@ export function writeStyle(
   }
 
   links.forEach(link => {
-    const href = link.href.startsWith(location.href) &&
-      link.href.slice(location.href.length) || link.href;
+    const href = (
+      link.href.startsWith(location) &&
+      link.href.slice(location.length)
+    ) || link.href;
     const id = generateStyleId(href);
+    // If there's new content, store it, else set the content to the previously
+    // stored one for converting link to style afterwards.
     if (content) dirtyLinks[id] = content; else content = dirtyLinks[id];
+    // If there's no stored content for the href then quit.
     if (!content) return;
-    
     const style = document.createElement('style');
     log(content, `Replacing link tag with style tag id "${id}"...`);
     style.id = id, style.textContent = content;
     el.insertBefore(style, link), el.removeChild(link);
   });
 
+  // Create a unique id for the style.
   function generateStyleId(url: string) {
     const encodedUrl = btoa(encodeURIComponent(url)).replace(/[+/=]/g, '_');
     return 'lively-style-' + encodedUrl;
@@ -127,20 +153,21 @@ function extractContent(htmlContent: string, part: HtmlMainTag): string {
   if (part === 'body') {
     const bodyMatch = htmlContent.match(/(?<=<body.*?>).*(?=<\/body>)/i);
     if (bodyMatch) return bodyMatch[0];
-
     const bodyExtracted = htmlContent
+      // Remove html tags.
       .replace(/.*<html.*?>(.*)<\/html>.*/i, '$1')
+      // Remove head tags.
       .replace(/<(head|style|title).*?>.*?<\/\1>|<(link|meta).*?>/gi, '');
     return bodyExtracted;
   }
   if (part === 'head') {
     const headMatch = htmlContent.match(/(?<=<head.*?>).*(?=<\/head>)/i);
     if (headMatch) return headMatch[0];
-
-    const headExtracted = htmlContent
-      .match(/<(style|title).*?>.*?<\/\1>|<(link|meta).*?>/gi);
+    const re = /<(style|title).*?>.*?<\/\1>|<(link|meta).*?>/gi;
+    const headExtracted = htmlContent.match(re);
     return headExtracted?.join('') || '';
   }
+  // The html, head, body tags' attributes are removed.
   const head = '<head>' + extractContent(htmlContent, 'head') + '</head>';
   const body = '<body>' + extractContent(htmlContent, 'body') + '</body>';
   return head + body;
@@ -151,21 +178,25 @@ function diffIframe(iframeDoc: IframeDoc, newHTML: HTMLElement) {
   const dom = nodeToObj(el);
   const oldDOM = iframeDoc.oldDOM;
   const newDOM = nodeToObj(newHTML);
-  log([oldDOM, yamlifyDOM(oldDOM)], 'Raw HTML (1)'),
-  log([dom, yamlifyDOM(dom)], 'Js-altered HTML (2)'),
-  log([newDOM, yamlifyDOM(newDOM)], 'Editor-modified HTML (3)')
+  log([oldDOM, yamlifyDOM(oldDOM)], 'Raw HTML (1)');
+  log([dom, yamlifyDOM(dom)], 'Js-altered HTML (2)');
+  log([newDOM, yamlifyDOM(newDOM)], 'Editor-modified HTML (3)');
 
   const toAmendedHTML = dd.diff(dom, newDOM);
   const toJSAlteration = dd.diff(oldDOM, dom);
   modifyDiffs(toJSAlteration, toAmendedHTML);
-  log([toAmendedHTML, yamlifyDOM(toAmendedHTML)], '2 → 3'),
-  log([toJSAlteration, yamlifyDOM(toJSAlteration)], '1 → 2')
+  log([toAmendedHTML, yamlifyDOM(toAmendedHTML)], '2 → 3');
+  log([toJSAlteration, yamlifyDOM(toJSAlteration)], '1 → 2');
+  // Transform current DOM to the new one with content edited in VSCode.
   dd.apply(el, toAmendedHTML);
+  // Apply Js alterations made with the old DOM.
   dd.apply(el, toJSAlteration);
   iframeDoc.oldHTML = newHTML.outerHTML;
   iframeDoc.oldDOM = newDOM;
 }
 
+// Shift routes of the elements correspond to the diffs based on whether
+// previous diffs include adding or removing elements.
 function modifyDiffs(diffs: DiffDOMDiff[], base: DiffDOMDiff[]) {
   base.forEach(({ action, route, groupLength: size, from, to }) => {
     action === 'addElement' && shiftDiffs(diffs, route, 1);
@@ -175,11 +206,11 @@ function modifyDiffs(diffs: DiffDOMDiff[], base: DiffDOMDiff[]) {
 }
 
 function shiftDiffs(
-  diffs: DiffDOMDiff[],
+  diffs : DiffDOMDiff[],
   baseRoute: number[],
   vector: number,
-  tail?: number,
-  head?: number
+  tail ?: number,
+  head ?: number
 ) {
   const lastPoint = baseRoute.length - +!head;
   diffs.forEach(({route}) => {
@@ -187,18 +218,28 @@ function shiftDiffs(
     for (let i = 0; i < lastPoint; ++i) {
       if (route[i] !== baseRoute[i]) return;
     }
+    const step = route[lastPoint];
+    // Shift last point of the route up or down 1 floor.
     if (!tail) {
-      if (route[lastPoint] < baseRoute[lastPoint]) return;
+      if (step < baseRoute[lastPoint]) return;
+      // The basis route's last point is behind the examining route's last
+      // point, hence affecting that point of the examining route.
       route[lastPoint] += vector;
       return;
     }
-    if (route[lastPoint] >= tail) {
-      if (route[lastPoint] < tail + vector) {
-        route[lastPoint] += head! - tail;
-        return;
-      }
-      route[lastPoint] -= vector;
-    }
-    if (route[lastPoint] >= head!) route[lastPoint] += vector;
-  })
+    //              1                  5
+    // ===========             ↑
+    //      |       2          |       6
+    // -----------        ===========
+    //      |       3                  7
+    //      ↓             -----------
+    //              4                  8
+    head = head!;
+    // Move the element from tail to head. (2, 7)
+    step >= tail && step < tail + vector && (route[lastPoint] += head - tail);
+    // Pull the element up. (3)
+    step >= tail + vector && step < head! && (route[lastPoint] -= vector);
+    // Push the element down. (6)
+    step >= head && step < tail && (route[lastPoint] += vector);
+  });
 }

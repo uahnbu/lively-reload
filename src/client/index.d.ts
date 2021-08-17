@@ -4,32 +4,30 @@ type HtmlMainTag = 'html' | 'body' | 'head'
 
 interface WebSocket {
   events: { [task: string]: (data: any) => void }
-  on: (event: any, handler: any) => {}
+  on: (event: any, handler: any) => void
 }
 
 interface IframeDoc extends Document {
   filePath: string
-  iframe: HTMLIFrameElement
-  oldDOM: DiffDOMNode
-  oldHTML: string
+  fileRel : string
+  iframe  : HTMLIFrameElement
+  oldDOM  : DiffDOMNode
+  oldHTML : string
 }
 
 interface DiffDOMNode {
-  nodeName: string
+  nodeName   : string
   childNodes?: DiffDOMNode[]
-  data?: string
-  attributes?: {
-    id?: string
-    class?: string
-  }
+  data      ?: string
+  attributes?: { id?: string, class?: string }
 }
 
 interface DiffDOMDiff {
   action: string
-  route: number[]
+  route : number[]
+  from  : number
+  to    : number
   groupLength: number
-  from: number
-  to: number
 }
 
 interface DiffDomConstructor {
@@ -58,6 +56,7 @@ interface RelativeData {
 interface AbsoluteData {
   content?: string
   filePath: string
+  fileRel : string
   messages: MsgData[]
   highlightIds: (number | string)[]
 }
@@ -65,7 +64,7 @@ interface AbsoluteData {
 interface HighlightData {
   highlightIds: (number | string)[]
   filePath?: string
-  fileRel?: string
+  fileRel ?: string
 }
 
 interface MessagePane extends HTMLElement {
@@ -78,10 +77,10 @@ interface Highlight extends HTMLDivElement {
 }
 
 interface Bound {
-  width: number
+  width : number
   height: number
   left: number
-  top: number
+  top : number
 }
 
 type HighlightPart = '' | '-horizontal' | '-vertical'

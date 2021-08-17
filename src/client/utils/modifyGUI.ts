@@ -16,8 +16,8 @@ export function showMessage(data: string | MsgData[], type: MsgType = 'info') {
   messageCenter.textContent = '';
   typeof data === 'string' && (data = [{ msg: data, type }]);
   if (data.length === 0) {
-    messagePane.hidden = true;
     errorIcon.dataset.indicator = warningIcon.dataset.indicator = '0';
+    messagePane.hidden = true;
     return;
   }
   data.forEach(({ msg, type }) => {
@@ -45,7 +45,7 @@ export function log(msg: string | any[], type: string) {
   console.groupEnd();
 }
 
-export function showIframe(iframeDoc: IframeDoc) {
+export function addShowingAttribute(iframeDoc: IframeDoc) {
   const iframes = document.querySelectorAll('iframe');
   const docIframe = iframeDoc.iframe;
   iframes.forEach(iframe => iframe.setAttribute('showing', 'false'));
@@ -71,7 +71,9 @@ minimizeIcon.addEventListener('mouseup', () => {
 minimizeIcon.addEventListener('click', function() {
   if (messagePane.originalSize) { maximizeMessagePane(); return }
   const { offsetWidth, offsetHeight, offsetTop } = messagePane;
+  // Shrink the message pane to the bottom right corner.
   messagePane.style.width = messagePane.style.height = MIN_BOX_SIZE + 'px';
   messagePane.style.top = offsetTop + offsetHeight - MIN_BOX_SIZE + 'px';
+  // Save the original size for later restoration.
   messagePane.originalSize = [offsetWidth, offsetHeight];
 });

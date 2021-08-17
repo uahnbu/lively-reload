@@ -12,6 +12,8 @@ const styleProperties = [
 let selections: Map<HTMLElement, Highlight> = new Map;
 
 export function highlightHtml(iframeDoc: IframeDoc, ids?: (number | string)[]) {
+  // If ids is not specified, update previous highlights to the corresponding
+  // element sizes.
   if (!ids) {
     selections.forEach(highlight => {
       const styles = getHighlightStyles(highlight.target!);
@@ -26,7 +28,7 @@ export function highlightHtml(iframeDoc: IframeDoc, ids?: (number | string)[]) {
     .filter(el => iframeDoc.body.contains(el))
   );
   let hasScrolled = false;
-  log(highlights, 'Highlighting the following selectors: ' + sel);
+  log(highlights, 'Highlighting selectors ' + sel + '...');
   highlights.forEach(target => {
     const styles = getHighlightStyles(target);
     if (selections.has(target)) {
@@ -50,6 +52,8 @@ export function highlightHtml(iframeDoc: IframeDoc, ids?: (number | string)[]) {
   });
   selections.clear();
   selections = newSelections;
+  // If the highlighted elements' parents are all unscrollable, manually add
+  // appearing effect for newly selected elements.
   !hasScrolled && Scroller.highlight();
 }
 
@@ -74,12 +78,17 @@ export function highlightCss(ids: string[], fileRel: string) {
   }
 }
 
+// If the id is already a selector, return it. Otherwise, generate an attribute
+// selector for the id aka the position in the editor.
 function getIdAttribute(id: number | string) {
   if (typeof id === 'string') return id;
   return '[lively-position="' + id + '"]';
 }
 
 function getHighlightStyles(target: HTMLElement) {
+  // TODO: getBoundingClientRect is not accurate for elements with transforms
+  // getBoundingClientRect get the sizes of the elemnent including paddings
+  // and borders.
   const { width, height, left, top } = target.getBoundingClientRect();
   const computedStyle = window.getComputedStyle(target);
   const attributes: K = {};
@@ -135,6 +144,7 @@ function addHighlightPart(el: HTMLElement, suffix: HighlightPart, styles: K) {
   return div;
 }
 
+// Recursively scroll element to the viewport of its parent.
 function scrollToView(el: HTMLElement, bound: Bound): boolean {
   if (isDebugging()) {
     const outerHTML = el.outerHTML;
@@ -154,6 +164,8 @@ function scrollToView(el: HTMLElement, bound: Bound): boolean {
     scrollY === 'auto' || scrollY === 'scroll' ||
     isMainParent && scrollX !== 'hidden' && scrollY !== 'hidden'
   );
+  // If the parent node is unscrollable, scroll the element to the viewport of
+  // its grandparent node.
   if (!isScrollable) { return !isMainParent && scrollToView(parent, bound) }
   let vx = 0, vy = 0, vw, vh;
   if (isMainParent) {
@@ -164,67 +176,76 @@ function scrollToView(el: HTMLElement, bound: Bound): boolean {
     [vx, vy, vw, vh] = [left, top, width, height];
   }
   const dx = left - vx, dy = top - vy;
+  // If the element is larger than the viewport, either scroll the parent to
+  // see the top or bottom of the element.
   if (width > vw) {
-    dx > 0 && Scroller.setTargetX(parent, dx);
-    dx + width < vw && Scroller.setTargetX(parent, dx + width - vw);
-  } else Scroller.setTargetX(parent, dx + width / 2 - vw / 2);
+    // The top edge of the element is below the viewport.
+    dx > 0 && Scroller.setDeltaX(parent, dx);
+    // The bottom edge of the element is above the viewport.
+    dx + width < vw && Scroller.setDeltaX(parent, dx + width - vw);
+  } else Scroller.setDeltaX(parent, dx + width / 2 - vw / 2);
   if (height > vh) {
-    dy > 0 && Scroller.setTargetY(parent, dy);
-    dy + height < vh && Scroller.setTargetY(parent, dy + height - vh);
-  } else Scroller.setTargetY(parent, dy + height / 2 - vh / 2);
+    dy > 0 && Scroller.setDeltaY(parent, dy);
+    dy + height < vh && Scroller.setDeltaY(parent, dy + height - vh);
+  } else Scroller.setDeltaY(parent, dy + height / 2 - vh / 2);
   return true;
 }
 
+// The job is to add dx/dy to the viewport's scroll position, so a large
+// portion, i.e. maxSpeed, is added at first, then the scrolling slow down when
+// awareDist is reached and stop when the remaining portion is small enough,
+// i.e. below EPSION.
 class Scroller {
   EPSILON = 1e-1
   maxSpeed = 50
   awareDist = 100
   ratio = this.maxSpeed / this.awareDist
   element: HTMLElement | null
-  targetX = 0
-  targetY = 0
+  dx = 0
+  dy = 0
   constructor(element: HTMLElement) { this.element = element }
   callback() {
     Scroller.scrollers.delete(this.element!);
     this.element = null;
     Scroller.highlight();
   }
-  setTarget(targetPos: number, axis: 'x' | 'y') {
-    axis === 'x' && (this.targetX = targetPos);
-    axis === 'y' && (this.targetY = targetPos);
+  setTarget(targetDiff: number, axis: 'x' | 'y') {
+    axis === 'x' && (this.dx = targetDiff);
+    axis === 'y' && (this.dy = targetDiff);
     this.scroll();
   }
   scroll() {
     if (!this.isScrolling()) { this.callback(); return }
-    const { EPSILON, awareDist, ratio, element, targetX, targetY } = this;
+    const { EPSILON, awareDist, ratio, element, dx, dy } = this;
     const { abs, min, sign } = Math;
-    if (abs(targetX) > EPSILON) {
-      const delta = sign(targetX) * min(awareDist, abs(targetX)) * ratio;
-      element!.scrollLeft += delta, this.targetX -= delta;
+    if (abs(dx) > EPSILON) {
+      const delta = sign(dx) * min(awareDist, abs(dx)) * ratio;
+      element!.scrollLeft += delta, this.dx -= delta;
     }
-    if (abs(targetY) > EPSILON) {
-      const delta = sign(targetY) * min(awareDist, abs(targetY)) * ratio;
-      element!.scrollTop += delta, this.targetY -= delta;
+    if (abs(dy) > EPSILON) {
+      const delta = sign(dy) * min(awareDist, abs(dy)) * ratio;
+      element!.scrollTop += delta, this.dy -= delta;
     }
     requestAnimationFrame(this.scroll.bind(this));
   }
   isScrolling() {
-    const { EPSILON, targetX, targetY } = this, abs = Math.abs;
+    const { EPSILON, dx: targetX, dy: targetY } = this, abs = Math.abs;
     return abs(targetX) > EPSILON || abs(targetY) > EPSILON;
   }
 
   static scrollers: Map<HTMLElement, Scroller> = new Map
-  static setTargetX(element: HTMLElement, targetPos: number) {
-    this.setTarget(element, targetPos, 'x');
+  static setDeltaX(element: HTMLElement, targetDiff: number) {
+    this.setTarget(element, targetDiff, 'x');
   }
-  static setTargetY(element: HTMLElement, targetPos: number) {
-    this.setTarget(element, targetPos, 'y');
+  static setDeltaY(element: HTMLElement, targetDiff: number) {
+    this.setTarget(element, targetDiff, 'y');
   }
-  static setTarget(element: HTMLElement, targetPos: number, axis: 'x' | 'y') {
+  static setTarget(element: HTMLElement, targetDiff: number, axis: 'x' | 'y') {
     let scroller = this.scrollers.get(element);
     !scroller && this.scrollers.set(element, scroller = new this(element));
-    scroller.setTarget(targetPos, axis);
+    scroller.setTarget(targetDiff, axis);
   }
+  // Add appearing effect for all previously scrolled elements.
   static highlight() {
     if (this.scrollers.size !== 0) return;
     selections.forEach(el => el.classList.add('appear'));

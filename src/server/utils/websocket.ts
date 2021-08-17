@@ -1,11 +1,10 @@
-import * as WebSocket from 'ws';
-import { IncomingMessage } from 'http';
-import { Socket } from 'net';
+import { Server } from 'http';
 import {
-  getActiveFile, getConfig,
+  getActiveHtmlData, getConfig,
   statusButton, focusContent
 } from '../../extension';
-import { isServerRunning, setVirtualDir } from './handleServer';
+import { isServerRunning } from './handleServer';
+import WebSocket = require('ws');
 
 const webSockets = new Set<any>();
 let heartBeat: NodeJS.Timeout;
@@ -20,25 +19,20 @@ export function sendMessage(task: string, data: any = null) {
   webSockets.forEach(ws => ws.send(JSON.stringify({ task, data })));
 }
 
-export function handleConnection(
-  req: IncomingMessage,
-  socket: Socket,
-  head: Buffer
-) {
-  const wsServer = new WebSocket.Server({ noServer: true });
-  wsServer.on('connect', ws => {
+export async function initWebSocket(server: Server) {
+  const { Server: WebSocketServer } = await import('ws');
+  const wsServer = new WebSocketServer({server});
+  wsServer.on('connection', ws => {
     ws.on('message', (msg: string) => handleMessage(msg, ws));
     ws.on('close', () => handleClose(ws));
   });
-  wsServer.handleUpgrade(req, socket, head, callback);
-  function callback(ws: WebSocket) { wsServer.emit('connect', ws) }
 }
 
 async function handleMessage(msg: string, ws: WebSocket) {
   const { task, data } = JSON.parse(msg);
   if (task === 'connect') {
     webSockets.add(ws);
-    const activeFile = await getActiveFile();
+    const activeFile = await getActiveHtmlData();
     activeFile && sendMessage('switchHTML', activeFile);
     statusButton.setDoClose();
     return;
@@ -48,7 +42,6 @@ async function handleMessage(msg: string, ws: WebSocket) {
     focusContent(position, filePath);
     return;
   }
-  if (task === 'virtualPath') { setVirtualDir(data); }
 }
 
 async function handleClose(ws: WebSocket) {

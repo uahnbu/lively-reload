@@ -3,6 +3,15 @@ import { existsSync, mkdirSync, writeFileSync } from 'fs';
 import { getConfig } from '../../extension';
 import { isServerRunning, sendMessage } from '../../server';
 
+type ExportableExtension = '.pug' | '.scss' | '.sass' | '.ts';
+
+export const exportableExtensions = {
+  '.pug' : '.html',
+  '.scss': '.css' ,
+  '.sass': '.css' ,
+  '.ts'  : '.js'
+};
+
 export async function exportPug(
   content: string,
   filePath: string,
@@ -49,17 +58,11 @@ export async function exportTs(
   sendMessage('reloadJS', data.fileRel);
 }
 
+// Get export target file path.
 function getTarget(filePath: string, outdir: string | null, root: string) {
-  if (outdir === null) return null;
-  const extMap = {
-    '.pug': '.html',
-    '.scss': '.css',
-    '.sass': '.css',
-    '.ts': '.js'
-  };
-  type AllowedExtensions = '.pug' | '.scss' | '.sass' | '.ts';
-  const ext = extname(filePath).toLowerCase() as AllowedExtensions;
-  const fileName = parse(filePath).name + extMap[ext];
+  if (outdir == null) return null;
+  const ext = extname(filePath).toLowerCase() as ExportableExtension;
+  const fileName = parse(filePath).name + exportableExtensions[ext];
   const dist = join(root, outdir);
   !existsSync(dist) && mkdirSync(dist);
   return join(dist, fileName);

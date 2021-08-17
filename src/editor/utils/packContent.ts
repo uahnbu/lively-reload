@@ -1,7 +1,7 @@
 import { join, parse } from 'path';
 import { HtmlValidate } from 'html-validate';
 import { RuleConfig } from 'html-validate/dist/config';
-import { getConfig } from '../../extension';
+import { getConfig, getRoot } from '../../extension';
 
 let htmlvalidate: HtmlValidate;
 
@@ -13,12 +13,22 @@ async function constructHtmlValidate() {
   htmlvalidate = new HtmlValidate({ elements: [html5], rules });
 }
 
-export function packHtml(content: string, filePath: string): Promise<{
+export interface HtmlMessage {
   filePath: string
   messages: { msg: string, type: string }[]
-  content?: string
-  highlightIds?: (number | string)[]
-}>
+}
+
+export interface HtmlPack extends HtmlMessage {
+  fileRel: string
+  content: string
+  highlightIds: (number | string)[]
+}
+
+export function packHtml(content: string, filePath: string): Promise<HtmlPack>
+export function packHtml(
+  content: string,
+  filePath: string
+): Promise<HtmlMessage>
 
 export async function packHtml(content: string, filePath: string) {
   await constructHtmlValidate();
@@ -31,55 +41,68 @@ export async function packHtml(content: string, filePath: string) {
   }) || [];
   if (!report.valid) return { filePath, messages };
 
+  const root = getRoot();
+  const isRelative = root && filePath.startsWith(root);
+  const fileRel = isRelative ? filePath.slice(root!.length) : '';
   const { highlight } = await import('./highlightContent');
   let highlightIds: (number | string)[];
   ({ content, highlightIds } = highlight(content, 'html'));
-  return { filePath, content, messages, highlightIds };
+  return { filePath, fileRel, content, messages, highlightIds };
 }
 
 export async function packPug(
-  content: string,
+  content : string,
   filePath: string,
-  root?: string
+  root   ?: string
 ) {
+  // TODO: Chunk Webpack for Pug, Sass, Ts.
   const { render: renderPug } = await import('pug');
   const { pretty, maxLoop, outdir } = await getConfig('pugOptions');
+  // Add loop limit to prevent infinite loop.
   content = content.replace(
     /^(\s*while.*)$/gm,
     '-var _sAfeVar=0;\n$1&&_sAfeVar++<' + maxLoop
   );
   content = renderPug(content, {pretty});
-  if (!root || outdir == null) return { filePath, content, messages: [] };
-  filePath = join(root, outdir, parse(filePath).name + '.html')
+  if (root && outdir != null) {
+    const fileName = parse(filePath).name + '.html';
+    filePath = join(root, outdir, fileName);
+  }
   return { filePath, content, messages: [] };
 }
 
 export async function packCss(content: string, filePath: string, root: string) {
   const fileRel = filePath.slice(root.length + 1).replace(/\\/g, '/');
-  const selectors = [
-    '(".*?"|\'.*?\')',
-    ';[\\n\\r\\s]*(})',
-    '\\s*[\\n\\r]+\\s*',
-    '\\s*([{}():,>~+])\\s*',
-    '(calc\\(.*\\))',
-    '(\\s*\\/\\*[\\s\\S]*?\\*\\/)',
-  ];
   const { highlight } = await import('./highlightContent');
   const highlightIds = highlight(content, 'css');
+  const selectors = [
+    // Ignore quotes.
+    '(".*?"|\'.*?\')',
+    ';[\\n\\r\\s]*(})',
+    // Remove spaces along with new lines.
+    '\\s*[\\n\\r]+\\s*',
+    // Remove spaces around operators.
+    '\\s*([{}():,>~+])\\s*',
+    // Keep spaces inside calc.
+    '(calc\\(.*\\))',
+    // Ignore comments.
+    '(\\s*\\/\\*[\\s\\S]*?\\*\\/)',
+  ];
   content = content.replace(RegExp(selectors.join('|'), 'gi'), '$1$2$3$4');
   return { fileRel, content, highlightIds };
 }
 
 export async function packScss(
-  content: string,
+  content : string,
   filePath: string,
-  root?: string
+  root   ?: string
 ) { return await packSass(content, filePath, root, false) }
 
 export async function packSass(
-  content: string,
+  content : string,
   filePath: string,
-  root?: string,
+  // Root is unnecessary when exporting.
+  root   ?: string,
   indentedSyntax = true
 ) {
   const { renderSync: renderSass } = await import('sass');
@@ -90,9 +113,10 @@ export async function packSass(
     ...(!root && outdir && pretty ? {} : { outputStyle: 'compressed' })
   }).css.toString();
   if (!root) return content;
-  outdir != null && (
-    filePath = join(root, outdir, parse(filePath).name + '.css')
-  );
+  if (outdir != null) {
+    const fileName = parse(filePath).name + '.css';
+    filePath = join(root, outdir, fileName);
+  }
   const fileRel = filePath.slice(root.length + 1).replace(/\\/g, '/');
   return { fileRel, content };
 }

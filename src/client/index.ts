@@ -4,7 +4,7 @@ import { Interact } from './utils/interact';
 import { YAML } from './utils/yaml';
 import { createIframe, modifyHTML, writeStyle } from './utils/modifyDOM';
 import {
-  setDebug, log, showIframe,
+  setDebug, log, addShowingAttribute,
   showMessage, maximizeMessagePane,
 } from './utils/modifyGUI';
 import { highlightHtml, highlightCss } from './utils/highlight';
@@ -27,6 +27,8 @@ export const yamlify = yaml.yamlify.bind(yaml);
 const documents: { [key: string]: IframeDoc } = {};
 let ws: WebSocket, heartBeat: NodeJS.Timeout;
 
+// If the server is opened in a secured connection, e.g. through ngrok tunnel,
+// construct a secure WebSocket, else fallback to a normal WebSocket.
 ws = new WebSocket('wss://' + location.host);
 ws.addEventListener('open', wsInit);
 ws.addEventListener('error', () => {
@@ -42,19 +44,19 @@ function wsInit() {
     ws.events[task] && ws.events[task](data);
   });
   sendMessage('connect');
-  document.querySelector('#init-message')!.textContent = (
-    'Connection established. Open a .html/.pug file to begin.'
-  );
+  const msg = 'Connection established. Open a .html/.pug file to begin.';
+  document.querySelector('#init-message')!.textContent = msg;
 
   ws.on('switchHTML', async (data: AbsoluteData) => {
-    const { filePath, content, messages, highlightIds } = data;
+    const { filePath, fileRel, content, messages, highlightIds } = data;
     const initMessage = document.querySelector('#init-message');
     initMessage && document.body.removeChild(initMessage);
     showMessage([{ msg: filePath, type: 'info' } as MsgData].concat(messages));
-    documents[filePath] && showIframe(documents[filePath]);
-    content != null && (
-      documents[filePath] = await createIframe(content, filePath)
-    );
+    documents[filePath] && addShowingAttribute(documents[filePath]);
+    if (content != null) {
+      const iframeDoc = await createIframe(content, filePath, fileRel);
+      documents[filePath] = iframeDoc;
+    }
     highlightHtml(documents[filePath], highlightIds);
   });
 
@@ -82,31 +84,31 @@ function wsInit() {
     }
   });
 
+  // Reload all iframe containing the editted script.
   ws.on('reloadJS', async (fileRel: string) => {
     for (const htmlPath in documents) {
       const iframeDoc = documents[htmlPath];
       const scripts = [...iframeDoc.querySelectorAll('script')];
-      const script = scripts.find(script => (
-        script.src.startsWith(location.href) &&
-        script.src.slice(location.href.length) === fileRel
-      ));
+      const script = scripts.find(({src}) => src === location.href + fileRel);
       if (!script) continue;
       log(`Reloading file ${htmlPath} due to a changed script...`, 'info');
       document.body.removeChild(iframeDoc.iframe);
-      documents[htmlPath] = await createIframe(iframeDoc.oldHTML, htmlPath);
+      const { oldHTML, fileRel: oldFileRel } = iframeDoc;
+      documents[htmlPath] = await createIframe(oldHTML, htmlPath, oldFileRel);
     }
   });
 
+  // Fully reload the page and flush all inactive iframes.
   ws.on('reloadFull', () => location.reload());
 
-  ws.on('alive', ({debug}: { debug: boolean }) => (
-    setDebug(debug),
-    clearTimeout(heartBeat),
-    heartBeat = setTimeout(
-      () => showMessage('Server disconnected.', 'error'),
-      500
-    )
-  ));
+  ws.on('alive', ({debug}: { debug: boolean }) => {
+    setDebug(debug);
+    clearTimeout(heartBeat);
+    heartBeat = setTimeout(informDisconnection, 500);
+    function informDisconnection() {
+      showMessage('Server disconnected.', 'error');
+    }
+  });
 
   ws.on('showMessage', (data: MsgData[]) => showMessage(data));
 }

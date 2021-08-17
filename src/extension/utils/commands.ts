@@ -3,6 +3,8 @@ import {
   Position, Selection, TextEditorRevealType
 } from 'vscode';
 import { extname, join } from 'path';
+import { HtmlPack, HtmlMessage } from '../../editor';
+import { setVirtualDir } from '../../server';
 
 type MessageType = 'info' | 'error' | 'warn';
 export function showMessage(msg: string, type: MessageType, options?: object) {
@@ -16,16 +18,39 @@ export function getRoot() {
   return workspace.workspaceFolders?.[0].uri.fsPath;
 }
 
-export async function getActiveFile() {
-  const activeTab = window.activeTextEditor?.document;
-  if (!activeTab) return null;
-  const activePath = activeTab.fileName;
-  const ext = extname(activePath).toLowerCase();
-  if (ext !== '.html' && ext !== '.pug') return null;
+type PackerExt = 'Html' | 'Pug' | 'Css' | 'Scss' | 'Sass';
+export function getPacker(ext: string) {
   const extCamel = ext[1].toUpperCase() + ext.slice(2);
-  const packer = 'pack' + extCamel as 'packHtml' | 'packPug';
+  const packer = 'pack' + extCamel as `pack${PackerExt}`;
+  return packer;
+}
+
+export function getActiveHtmlData(): Promise<HtmlPack | HtmlMessage | null>
+export function getActiveHtmlData(
+  content : string,
+  filePath: string,
+  ext: string, root?: string
+): Promise<HtmlPack | HtmlMessage | null>
+
+export async function getActiveHtmlData(
+  content ?: string,
+  filePath?: string,
+  ext?: string, root?: string
+) {
+  if (content == null) {
+    const document = window.activeTextEditor?.document;
+    if (!document) return null;
+    content = document.getText();
+    filePath = document.fileName;
+    ext = extname(filePath).toLowerCase();
+    if (ext !== '.html' && ext !== '.pug') return null;
+  }
+  type Packer = 'packHtml' | 'packPug';
+  const packer = getPacker(ext!) as Packer;
   const { [packer]: pack } = await import('../../editor');
-  return await pack(activeTab.getText(), activePath, getRoot());
+  const data = await pack(content, filePath!, root);
+  setVirtualDir(data.filePath);
+  return data;
 }
 
 export async function getConfig(val: string | string[]) {
