@@ -69,7 +69,7 @@ type Change = 'file' | 'tab';
 async function handleChange(content: string, filePath: string, type: Change) {
   const root = getRoot();
   const ext = extname(filePath).toLowerCase();
-  const htmlData = getActiveHtmlData(content, filePath, ext, root);
+  const htmlData = await getActiveHtmlData(content, filePath, ext, root);
   if (htmlData) {
     type === 'file' && sendMessage('editHTML', htmlData);
     type === 'tab' && sendMessage('switchHTML', htmlData);
