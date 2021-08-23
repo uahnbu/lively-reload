@@ -165,7 +165,7 @@ function scrollToView(el: HTMLElement, bound: Bound): boolean {
   );
   // If the parent node is unscrollable, scroll the element to the viewport of
   // its grandparent node.
-  if (!isScrollable) { return !isMainParent && scrollToView(parent, bound) }
+  if (!isScrollable) return !isMainParent && scrollToView(parent, bound);
   let vx = 0, vy = 0, vw, vh;
   if (isMainParent) {
     ({ innerWidth: vw, innerHeight: vh } = window);

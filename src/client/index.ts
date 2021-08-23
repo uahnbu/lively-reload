@@ -52,8 +52,8 @@ function wsInit() {
     const initMessage = document.querySelector('#init-message');
     initMessage && document.body.removeChild(initMessage);
     showMessage([{ msg: filePath, type: 'info' } as MsgData].concat(messages));
-    documents[filePath] && addShowingAttribute(documents[filePath]);
-    if (content != null) {
+    if (documents[filePath]) addShowingAttribute(documents[filePath]);
+    else if (content != null) {
       const iframeDoc = await createIframe(content, filePath, fileRel);
       documents[filePath] = iframeDoc;
     }
