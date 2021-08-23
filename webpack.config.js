@@ -10,7 +10,8 @@ const path = require('path');
 module.exports = [
   {
     target: 'web',
-    entry: './src/client',
+    context: path.resolve(__dirname, 'src/client'),
+    entry: '.',
     output: {
       path: path.resolve(__dirname, 'out/static'),
       filename: 'script.js',
@@ -43,12 +44,15 @@ module.exports = [
           },
         },
       }),
-      new CopyPlugin({ patterns: ['src/client/assets'] })
+      new CopyPlugin({
+        patterns: ['assets']
+      })
     ]
   },
   {
     target: 'node',
-    entry: './src/extension',
+    context: path.resolve(__dirname, 'src/core'),
+    entry: './extension',
     output: {
       path: path.resolve(__dirname, 'out'),
       filename: 'extension.js',
@@ -73,6 +77,7 @@ module.exports = [
             {
               loader: 'ts-loader',
               options: {
+                projectReferences: true,
                 happyPackMode: true
               }
             }
@@ -93,7 +98,7 @@ module.exports = [
         typescript: {
           diagnosticOptions: {
             semantic: true,
-            syntactic: true,
+            syntactic: true
           },
         },
       })

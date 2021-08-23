@@ -6,7 +6,7 @@ import {
   activeFileOnChange
 } from './utils/handleEditor';
 
-export { packHtml, packPug, HtmlPack, HtmlMessage } from './utils/packContent';
+export { packHtml, packPug } from './utils/packContent';
 
 export function listenEditorEvents() {
   // TextDocumentChange must be listened before TextEditorSelectionChange

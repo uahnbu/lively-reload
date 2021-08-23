@@ -1,18 +1,14 @@
-import { createServer, Server } from 'http';
-import { Socket } from 'net';
-import * as express from 'express';
+import { createServer } from 'http';
 import { dirname, join } from 'path';
-import {
-  getRoot, getConfig, openBrowser,
-  showMessage, statusButton
-} from '../../extension';
-import { initWebSocket, resurrect, killHeart, sendMessage } from './websocket';
+import type { Server } from 'http';
+import type { Socket } from 'net';
+import type { Express } from 'express';
 
 const PUBLIC_DIR = '/liveLy_public';
 const BLANK_HTML = '/liveLy_blank.html';
 
 const sockets = new Set<Socket>();
-let app: express.Express, server: Server;
+let app: Express, server: Server;
 // Directory of active file, used for requesting assets.
 let virtualDir = '';
 let serverRunning = false;
@@ -21,10 +17,11 @@ export function setVirtualDir(path: string) { virtualDir = dirname(path) }
 export function getVirtualDir() { return virtualDir }
 export function isServerRunning() { return serverRunning }
 
-function initApp(getRoot: () => string | undefined) {
+async function initApp(getRoot: () => string | undefined) {
   if (typeof app !== 'undefined') return app;
   // Folder /src/client/assets will be transferred to /static.
   const staticDir = join(__dirname, 'static');
+  const { default: express } = await import('express');
   app = express();
   app.get('/*', (req, res) => {
     const fileRel = req.url;
@@ -50,12 +47,20 @@ function initApp(getRoot: () => string | undefined) {
   });
 }
 
-export async function reloadServer() { sendMessage('reloadFull') }
+export async function reloadServer() {
+  const { sendMessage } = await import('./websocket');
+  sendMessage('reloadFull');
+}
 
 export async function startServer() {
+  const {
+    getRoot, getConfig, openBrowser,
+    showMessage, setStatusButtonLoading
+  } = await import('../../extension');
+  const { initWebSocket, resurrect } = await import('./websocket');
   const port = await getConfig('port');
   const host = 'http://127.0.0.1:' + port;
-  initApp(getRoot);
+  await initApp(getRoot);
   openBrowser(host);
   // https://github.com/websockets/ws#external-https-server
   server = createServer(app);
@@ -71,16 +76,17 @@ export async function startServer() {
   initWebSocket(server);
   serverRunning = true;
   resurrect();
-  statusButton.setLoading();
+  setStatusButtonLoading();
 }
 
 export async function closeServer() {
-  // Stop sending alive signals.
+  const { setStatusButtonDoStart } = await import('../../extension');
+  const { killHeart } = await import('./websocket');
   killHeart();
   server.close();
   serverRunning = false;
   sockets.forEach(socket => socket.destroy());
   sockets.clear();
-  statusButton.setDoStart();
+  setStatusButtonDoStart();
   setVirtualDir('');
 }

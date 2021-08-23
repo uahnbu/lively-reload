@@ -1,9 +1,8 @@
-import { ExtensionContext, commands } from 'vscode';
+import { commands } from 'vscode';
 import { listenEditorEvents } from '../editor';
 import { startServer, closeServer, reloadServer } from '../server';
-import statusButton from './utils/statusButton';
-
-export { statusButton };
+import { loadStatusButton } from './utils/statusButton';
+import type { ExtensionContext } from 'vscode';
 
 export {
 	showMessage,
@@ -18,10 +17,16 @@ export {
 export const START_COMMAND = 'livelyReload.startLively';
 export const CLOSE_COMMAND = 'livelyReload.closeLively';
 
+export {
+	setStatusButtonDoStart,
+	setStatusButtonLoading,
+	setStatusButtonDoClose
+} from './utils/statusButton';
+
 const RELOAD_COMMAND = 'livelyReload.reloadLively';
 
 export function activate(context: ExtensionContext) {
-	statusButton.load();
+	loadStatusButton();
 	context.subscriptions.push(...[
 		commands.registerCommand(START_COMMAND, () => startServer()),
 		commands.registerCommand(CLOSE_COMMAND, () => closeServer()),

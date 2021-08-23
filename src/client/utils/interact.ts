@@ -45,6 +45,9 @@ export class Interact {
      0    1    0   -1    0
      0   -2   -3   -4    0
      0    0    0    0    0 */
+
+  // Cannot use event.target because mouseMove is already triggered when the
+  // mouse is close to the element's edge, i.e. 16px away.
   mouseMove(event: MouseEvent) {
     const { clientX: mx, clientY: my } = event;
     // The mouse is down and is ready to interact with the element.
@@ -221,7 +224,6 @@ export class Interact {
     );
   }
 
-  // TODO: Use mouseDown target instead.
   // Check whether the element has any hovered child nodes that are graspable.
   mouseIsGraspable(mx: number, my: number, box: HTMLElement) {
     const children = [...box.querySelectorAll('*')].reverse();

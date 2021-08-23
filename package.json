@@ -90,9 +90,11 @@
     }
   },
   "scripts": {
-    "publish": "webpack && vsce publish patch",
-    "compile": "webpack --mode development",
-    "watch": "webpack -w --mode development",
+    "clean": "rmdir /s /q out",
+    "package": "npm run build && vsce package",
+    "build": "npm run clean & webpack",
+    "compile": "npm run clean & webpack --mode development",
+    "watch": "npm run clean & webpack -w --mode development",
     "lint": "eslint src --ext ts",
     "compiled:ts": "tsc",
     "compiled:html": "cpx \"src/**/*.html\" out",

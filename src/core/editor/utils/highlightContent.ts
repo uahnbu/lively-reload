@@ -1,23 +1,5 @@
 import { window } from 'vscode';
 
-interface HtmlHighlight {
-  content: string
-  highlightIds: (number | string)[]
-}
-
-interface TagNode {
-  leftStart: number
-  leftEnd: number
-  rightStart: number
-  rightEnd: number
-  children: TagNode[]
-}
-
-interface Selection {
-  start: number
-  end: number
-}
-
 const voidTags = [
   'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input',
   'link', 'meta', 'param', 'source', 'track', 'wbr'
@@ -45,7 +27,7 @@ export function highlight(content: string, filetype: 'html' | 'css') {
   const selections = window.activeTextEditor!.selections.map(sel => ({
     start: getIndex(sel.start.character, sel.start.line),
     end: getIndex(sel.end.character, sel.end.line)
-  })) as Selection[];
+  })) as ShiftedSelection[];
   if (filetype === 'html') {
     // Ingore pointers put among the starting spaces as they are unlikely to be
     // the user's intention to select the element.
@@ -86,7 +68,7 @@ export function highlight(content: string, filetype: 'html' | 'css') {
   }
 }
 
-function highlightHtml(content: string, selections: Selection[]) {
+function highlightHtml(content: string, selections: ShiftedSelection[]) {
   const stack: TagNode[] = [], graph: TagNode[] = [], list: TagNode[] = [];
   // Replace opening/closing tags inside strings.
   const dummy = content.replace(/'.*?'|".*?"/g, x => 'x'.repeat(x.length));
@@ -136,6 +118,12 @@ function highlightHtml(content: string, selections: Selection[]) {
   function addHighlights(node: TagNode, start: number, end: number): boolean {
     const { leftStart, leftEnd, rightStart, rightEnd, children } = node;
     if (start >= rightEnd || end <= leftStart) return false;
+    if (content.slice(leftStart, leftEnd).startsWith('<style')) {
+      const innerContent = content.slice(leftEnd, rightStart);
+      const selections = [{ start: start - leftEnd, end: end - leftEnd }];
+      highlightIds.push(...highlightCss(innerContent, selections));
+      return true;
+    }
     if (
       // If the selection is inside the tag, highlight the element regardless of
       // the element's child nodes.
@@ -151,14 +139,14 @@ function highlightHtml(content: string, selections: Selection[]) {
   }
 }
 
-function highlightCss(content: string, selections: Selection[]) {
-  const re = /(@[a-z-]+[\s\w]*{.*?})|([^%{}]+){[^{]*?}/gi;
+function highlightCss(content: string, selections: ShiftedSelection[]) {
+  const re = /(\/\*.*?\*\/|@[a-z-]+[\s\w]*{.*?})|([^%{}]+){[^{]*?}/gi;
   const highlightIds: string[] = [];
   while (true) {
     const match = re.exec(content);
     if (!match) break;
     const [s, s1, s2] = match;
-    // Ignore reserved keyword, e.g. @font-face, @keyframes.
+    // Ignore reserved keyword, e.g. @font-face, @keyframes and comments.
     if (s1) continue;
     const { index: i } = match;
     if (selections.some(({ start, end }) => start < i + s.length && end > i)) {

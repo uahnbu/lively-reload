@@ -1,13 +1,19 @@
-import {
+import { extname } from 'path';
+import { getRoot } from '../../extension';
+import { isServerRunning, sendMessage } from '../../server';
+import type {
   TextDocument,
   TextDocumentChangeEvent,
   TextEditorSelectionChangeEvent,
   TextEditor
 } from 'vscode';
-import { extname } from 'path';
-import { getActiveHtmlData, getPacker, getRoot } from '../../extension';
-import { isServerRunning, sendMessage } from '../../server';
-import { exportableExtensions } from './exportContent';
+
+const exportableExtensions = {
+  '.pug' : '.html',
+  '.scss': '.css' ,
+  '.sass': '.css' ,
+  '.ts'  : '.js'
+};
 
 let changingContent = false;
 
@@ -22,9 +28,8 @@ export async function editorOnSave(event: TextDocument) {
     return;
   }
   if (!exportableExtensions.hasOwnProperty(ext)) return;
-  type PackerExt = 'Pug' | 'Scss' | 'Sass' | 'Ts';
   const extCamel = ext[1].toUpperCase() + ext.slice(2);
-  const exporter = 'export' + extCamel as `export${PackerExt}`;
+  const exporter = 'export' + extCamel as `export${ExportableExtCamel}`;
   const { [exporter]: exportFile } = await import('./exportContent');
   exportFile(getText(), fileName, root);
 }
@@ -47,6 +52,7 @@ export async function selectionOnChange(event: TextEditorSelectionChangeEvent) {
     const { packHtml } = await import('./packContent');
     const { filePath, highlightIds } = await packHtml(getText(), fileName);
     sendMessage('highlightHtml', { filePath, highlightIds });
+    return;
   }
   if (ext === '.css') {
     const root = getRoot();
@@ -65,10 +71,14 @@ export function activeFileOnChange(event?: TextEditor) {
   changingContent = true;
 }
 
-type Change = 'file' | 'tab';
-async function handleChange(content: string, filePath: string, type: Change) {
+async function handleChange(
+  content : string,
+  filePath: string,
+  type    : ChangeType
+) {
   const root = getRoot();
   const ext = extname(filePath).toLowerCase();
+  const { getActiveHtmlData } = await import('../../extension');
   const htmlData = await getActiveHtmlData(content, filePath, ext, root);
   if (htmlData) {
     type === 'file' && sendMessage('editHTML', htmlData);
@@ -77,8 +87,8 @@ async function handleChange(content: string, filePath: string, type: Change) {
   }
   if (ext === '.css' || ext === '.scss' || ext === '.sass') {
     if (!root || !isServerRunning || !filePath.startsWith(root)) return;
-    type Packer = `pack${'Css' | 'Scss' | 'Sass'}`;
-    const packer = getPacker(ext) as Packer;
+    const { getPacker } = await import('../../extension');
+    const packer = getPacker(ext) as Pack<StyleExtCamel>;
     const { [packer]: pack } = await import('./packContent');
     sendMessage('injectCSS', await pack(content, filePath, root));
   }

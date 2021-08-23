@@ -25,8 +25,7 @@ export function highlightHtml(iframeDoc: IframeDoc, ids?: (number | string)[]) {
   const sel = ids.map(id => getIdAttribute(id)).join()
   const highlights = (
     (sel.length ? [...iframeDoc.querySelectorAll<HTMLElement>(sel)] : [])
-    .filter(el => el !== iframeDoc.body && iframeDoc.body.contains(el))
-  );
+  ).filter(el => el !== iframeDoc.body && iframeDoc.body.contains(el));
   let hasScrolled = false;
   log(highlights, 'Highlighting selectors ' + sel + '...');
   console.log(highlights);

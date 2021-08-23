@@ -1,34 +1,22 @@
 import { join, parse } from 'path';
-import { HtmlValidate } from 'html-validate';
-import { RuleConfig } from 'html-validate/dist/config';
-import { getConfig, getRoot } from '../../extension';
+import type { HtmlValidate } from 'html-validate';
+import type { RuleConfig } from 'html-validate/dist/config';
 
 let htmlvalidate: HtmlValidate;
 
 async function constructHtmlValidate() {
   if (htmlvalidate) return;
   const { HtmlValidate } = await import('html-validate');
-  const html5 = await import('html-validate/elements/html5.json');
-  const rules = await import('../assets/htmlRules.json') as RuleConfig;
-  htmlvalidate = new HtmlValidate({ elements: [html5], rules });
-}
-
-export interface HtmlMessage {
-  filePath: string
-  messages: { msg: string, type: string }[]
-}
-
-export interface HtmlPack extends HtmlMessage {
-  fileRel: string
-  content: string
-  highlightIds: (number | string)[]
+  const { default: html5 } = await import('html-validate/elements/html5.json');
+  const { default: rules } = await import('../assets/htmlRules.json');
+  htmlvalidate = new HtmlValidate({
+    elements: [html5],
+    rules: rules as RuleConfig
+  });
 }
 
 export function packHtml(content: string, filePath: string): Promise<HtmlPack>
-export function packHtml(
-  content: string,
-  filePath: string
-): Promise<HtmlMessage>
+export function packHtml(content: string, filePath: string): Promise<HtmlError>
 
 export async function packHtml(content: string, filePath: string) {
   await constructHtmlValidate();
@@ -41,6 +29,7 @@ export async function packHtml(content: string, filePath: string) {
   }) || [];
   if (!report.valid) return { filePath, messages };
 
+  const { getRoot } = await import('../../extension');
   const root = getRoot();
   const isRelative = root && filePath.startsWith(root);
   const fileRel = isRelative ? filePath.slice(root!.length) : '';
@@ -55,8 +44,8 @@ export async function packPug(
   filePath: string,
   root   ?: string
 ) {
-  // TODO: Chunk Webpack for Pug, Sass, Ts.
   const { render: renderPug } = await import('pug');
+  const { getConfig } = await import('../../extension');
   const { pretty, maxLoop, outdir } = await getConfig('pugOptions');
   // Add loop limit to prevent infinite loop.
   content = content.replace(
@@ -106,6 +95,7 @@ export async function packSass(
   indentedSyntax = true
 ) {
   const { renderSync: renderSass } = await import('sass');
+  const { getConfig } = await import('../../extension');
   const { pretty, outdir } = await getConfig('sassOptions');
   content = renderSass({
     data: content,

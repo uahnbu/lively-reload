@@ -3,10 +3,7 @@ import {
   Position, Selection, TextEditorRevealType
 } from 'vscode';
 import { extname, join } from 'path';
-import { HtmlPack, HtmlMessage } from '../../editor';
-import { setVirtualDir } from '../../server';
 
-type MessageType = 'info' | 'error' | 'warn';
 export function showMessage(msg: string, type: MessageType, options?: object) {
   options ||= { title: 'Dismiss' };
   type === 'info' && window.showInformationMessage(msg, options);
@@ -18,19 +15,18 @@ export function getRoot() {
   return workspace.workspaceFolders?.[0].uri.fsPath;
 }
 
-type PackerExt = 'Html' | 'Pug' | 'Css' | 'Scss' | 'Sass';
 export function getPacker(ext: string) {
   const extCamel = ext[1].toUpperCase() + ext.slice(2);
-  const packer = 'pack' + extCamel as `pack${PackerExt}`;
+  const packer = 'pack' + extCamel as Pack<DomExtCamel | StyleExtCamel>;
   return packer;
 }
 
-export function getActiveHtmlData(): Promise<HtmlPack | HtmlMessage | null>
+export function getActiveHtmlData(): Promise<HtmlPack | HtmlError | null>
 export function getActiveHtmlData(
   content : string,
   filePath: string,
   ext: string, root?: string
-): Promise<HtmlPack | HtmlMessage | null>
+): Promise<HtmlPack | HtmlError | null>
 
 export async function getActiveHtmlData(
   content ?: string,
@@ -45,14 +41,16 @@ export async function getActiveHtmlData(
     ext = extname(filePath).toLowerCase();
     if (ext !== '.html' && ext !== '.pug') return null;
   }
-  type Packer = 'packHtml' | 'packPug';
-  const packer = getPacker(ext!) as Packer;
+  const packer = getPacker(ext!) as Pack<DomExtCamel>;
   const { [packer]: pack } = await import('../../editor');
   const data = await pack(content, filePath!, root);
+  const { setVirtualDir } = await import('../../server');
   setVirtualDir(data.filePath);
   return data;
 }
 
+// If val is a string, return the corresponding config.
+// If val is an array, return an object containing the corresponding configs.
 export async function getConfig(val: string | string[]) {
   const { existsSync, readFileSync } = await import('fs');
   const vsConfigHub = workspace.getConfiguration('livelyReload');

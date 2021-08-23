@@ -3,9 +3,7 @@ import { existsSync, mkdirSync, writeFileSync } from 'fs';
 import { getConfig } from '../../extension';
 import { isServerRunning, sendMessage } from '../../server';
 
-type ExportableExtension = '.pug' | '.scss' | '.sass' | '.ts';
-
-export const exportableExtensions = {
+const exportableExtensions = {
   '.pug' : '.html',
   '.scss': '.css' ,
   '.sass': '.css' ,
@@ -13,9 +11,9 @@ export const exportableExtensions = {
 };
 
 export async function exportPug(
-  content: string,
+  content : string,
   filePath: string,
-  root: string
+  root    : string
 ) {
   const { packPug } = await import('./packContent');
   const data = await packPug(content, filePath, root);
@@ -30,10 +28,10 @@ export function exportScss(content: string, filePath: string, root: string) {
 }
 
 export async function exportSass(
-  content: string,
+  content : string,
   filePath: string,
-  root: string,
-  packer: 'packScss' | 'packSass' = 'packSass'
+  root    : string,
+  packer  : Pack<Exclude<StyleExtCamel, 'Css'>> = 'packSass'
 ) {
   const { [packer]: pack } = await import('./packContent');
   sendMessage('injectCSS', await pack(content, filePath, root));
@@ -45,9 +43,9 @@ export async function exportSass(
 }
 
 export async function exportTs(
-  content: string,
+  content : string,
   filePath: string,
-  root: string
+  root    : string
 ) {
   const { packTs } = await import('./packContent');
   const { outdir } = await getConfig('typescriptOptions');
