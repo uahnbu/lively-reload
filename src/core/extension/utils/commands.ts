@@ -41,8 +41,8 @@ export async function getActiveHtmlData(
     content = document.getText();
     filePath = document.fileName;
     ext = extname(filePath).toLowerCase();
-    if (ext !== '.html' && ext !== '.pug') return null;
   }
+  if (ext !== '.html' && ext !== '.pug') return null;
   const packer = getPacker(ext!) as Pack<DomExtCamel>;
   const { [packer]: pack } = await import('../../editor');
   const data = await pack(content, filePath!, root);
