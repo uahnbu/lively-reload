@@ -46,7 +46,7 @@ export async function packPug(
 ) {
   const { render: renderPug } = await import('pug');
   const { getConfig } = await import('../../extension');
-  const { pretty, maxLoop, outdir } = await getConfig('pugOptions');
+  const { pretty, maxLoop, outdir } = getConfig('pugOptions');
   // Add loop limit to prevent infinite loop.
   content = content.replace(
     /^(\s*while.*)$/gm,
@@ -96,7 +96,7 @@ export async function packSass(
 ) {
   const { renderSync: renderSass } = await import('sass');
   const { getConfig } = await import('../../extension');
-  const { pretty, outdir } = await getConfig('sassOptions');
+  const { pretty, outdir } = getConfig('sassOptions');
   content = renderSass({
     data: content,
     indentedSyntax,

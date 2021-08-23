@@ -3,6 +3,8 @@ import {
   Position, Selection, TextEditorRevealType
 } from 'vscode';
 import { extname, join } from 'path';
+import { existsSync, readFileSync } from 'fs';
+import { exec } from 'child_process';
 
 export function showMessage(msg: string, type: MessageType, options?: object) {
   options ||= { title: 'Dismiss' };
@@ -51,8 +53,7 @@ export async function getActiveHtmlData(
 
 // If val is a string, return the corresponding config.
 // If val is an array, return an object containing the corresponding configs.
-export async function getConfig(val: string | string[]) {
-  const { existsSync, readFileSync } = await import('fs');
+export function getConfig(val: string | string[]) {
   const vsConfigHub = workspace.getConfiguration('livelyReload');
   const config = typeof val === 'string'
     ? vsConfigHub.get<any>(val)
@@ -75,9 +76,8 @@ export async function getConfig(val: string | string[]) {
   return config;
 }
 
-export async function openBrowser(url: string) {
-  const { exec } = await import('child_process');
-  if (! await getConfig('openBrowser')) return;
+export function openBrowser(url: string) {
+  if (!getConfig('openBrowser')) return;
   const someProcess = process.platform as 'darwin' | 'win32';
   const cmd = { darwin: 'open', win32: 'start' }[someProcess] || 'xdg-open';
   exec(cmd + ' ' + Uri.parse(url.replace(/"/g, '\\"')));

@@ -58,7 +58,7 @@ export async function startServer() {
     showMessage, setStatusButtonLoading
   } = await import('../../extension');
   const { initWebSocket, resurrect } = await import('./websocket');
-  const port = await getConfig('port');
+  const port = getConfig('port');
   const host = 'http://127.0.0.1:' + port;
   await initApp(getRoot);
   openBrowser(host);

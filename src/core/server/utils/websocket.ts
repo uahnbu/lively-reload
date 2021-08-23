@@ -6,13 +6,13 @@ let heartBeat: NodeJS.Timeout;
 
 export async function resurrect() {
   const { getConfig } = await import('../../extension');
-  const aliveData = { debug: await getConfig('debug') };
+  const aliveData = { debug: getConfig('debug') };
   let aliveTimer = 0;
   heartBeat = setInterval(beat, 20);
-  async function beat() {
+  function beat() {
     if (++aliveTimer === 100) {
       aliveTimer = 0;
-      aliveData.debug = await getConfig('debug');
+      aliveData.debug = getConfig('debug');
     }
     sendMessage('alive', aliveData);
   }

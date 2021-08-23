@@ -18,7 +18,7 @@ export async function exportPug(
   const { packPug } = await import('./packContent');
   const data = await packPug(content, filePath, root);
   sendMessage('editHTML', data);
-  const { outdir } = await getConfig('pugOptions');
+  const { outdir } = getConfig('pugOptions');
   const target = getTarget(filePath, outdir, root);
   target && isServerRunning() && writeFileSync(target, data.content!);
 }
@@ -35,7 +35,7 @@ export async function exportSass(
 ) {
   const { [packer]: pack } = await import('./packContent');
   sendMessage('injectCSS', await pack(content, filePath, root));
-  const { outdir } = await getConfig('sassOptions');
+  const { outdir } = getConfig('sassOptions');
   const target = getTarget(filePath, outdir, root);
   target && isServerRunning() && (
     writeFileSync(target, await pack(content, filePath) as string)
@@ -48,7 +48,7 @@ export async function exportTs(
   root    : string
 ) {
   const { packTs } = await import('./packContent');
-  const { outdir } = await getConfig('typescriptOptions');
+  const { outdir } = getConfig('typescriptOptions');
   const target = getTarget(filePath, outdir, root);
   if (!target || !isServerRunning()) return;
   const data = await packTs(filePath, content, root);
