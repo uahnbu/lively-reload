@@ -17,7 +17,7 @@ module.exports = [
       filename: 'script.js',
       libraryTarget: 'umd',
     },
-    devtool: 'eval',
+    devtool: 'source-map',
     resolve: {
       extensions: ['.ts', '.js']
     },
@@ -62,7 +62,7 @@ module.exports = [
     node: {
       __dirname: false
     },
-    devtool: 'eval',
+    devtool: 'source-map',
     externals: {
       vscode: 'commonjs vscode'
     },
