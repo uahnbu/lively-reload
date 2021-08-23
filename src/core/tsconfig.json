@@ -1,16 +1,16 @@
 {
-	"compilerOptions": {
-		"module": "ES2020",
-		"moduleResolution": "Node",
-		"target": "ES6",
-		"strict": true,
-		"sourceMap": true,
-		"removeComments": true,
-		"resolveJsonModule": true,
-		// https://www.typescriptlang.org/tsconfig#esModuleInterop
-		// -> { default: express } = await import('express');
-		// express = await import('express') method, used when esModuleInterop is
-		// set to false, doesn't work with json files and some other libraries.
+  "compilerOptions": {
+    "module": "ES2020",
+    "moduleResolution": "Node",
+    "target": "ES6",
+    "strict": true,
+    "sourceMap": true,
+    "removeComments": true,
+    "resolveJsonModule": true,
+    // https://www.typescriptlang.org/tsconfig#esModuleInterop
+    // -> { default: express } = await import('express');
+    // express = await import('express') method, used when esModuleInterop is
+    // set to false, doesn't work with json files and some other libraries.
     "esModuleInterop": true
-	}
+  }
 }
