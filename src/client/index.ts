@@ -104,7 +104,7 @@ function wsInit() {
   ws.on('alive', ({debug}: { debug: boolean }) => {
     setDebug(debug);
     clearTimeout(heartBeat);
-    heartBeat = setTimeout(informDisconnection, 1000);
+    heartBeat = setTimeout(informDisconnection, 500);
     function informDisconnection() {
       showMessage('Server disconnected.', 'error');
     }
