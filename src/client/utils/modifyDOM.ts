@@ -68,7 +68,8 @@ async function activateScripts(element: HTMLElement) {
   const scripts = [...element.querySelectorAll('script')];
   log('Loading ' + scripts.length + ' script(s)...', 'info');
   try {
-    await Promise.all(scripts.map(script => migrateScript(element, script)));
+    const promises = scripts.map(script => migrateScript(element, script));
+    await Promise.all(promises);
   } catch(e) { throw Error(e) }
 }
 
@@ -83,7 +84,7 @@ function migrateScript(element: HTMLElement, oldScript: HTMLScriptElement) {
     script.textContent = textContent;
     script.onload = resolve;
     script.onerror = reject;
-    element.removeChild(oldScript);
+    oldScript.parentElement!.removeChild(oldScript);
     element.appendChild(script);
   });
 }
