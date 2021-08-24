@@ -41,6 +41,7 @@ export async function createIframe(
     sendMessage('focus', { position, filePath });
   });
   iframe.contentWindow!.addEventListener('beforeunload', () => {
+    sendMessage('unload');
   });
   addShowingAttribute(iframeDoc);
   loadContent(iframeDoc, content);
@@ -63,26 +64,27 @@ async function loadContent(iframeDoc: IframeDoc, content: string) {
 
 // Scripts added to DOM through innerHTML are not auto-executed and needed to be
 // activated manually.
-async function activateScripts(el: HTMLElement) {
-  const scripts = [...el.querySelectorAll('script')];
+async function activateScripts(element: HTMLElement) {
+  const scripts = [...element.querySelectorAll('script')];
   log('Loading ' + scripts.length + ' script(s)...', 'info');
   try {
-    await Promise.all(scripts.map(script => migrateScript(el, script)));
+    await Promise.all(scripts.map(script => migrateScript(element, script)));
   } catch(e) { throw Error(e) }
 }
 
 // Replace old scripts added through innerHTML by new ones.
-function migrateScript(el: HTMLElement, oldScript: HTMLScriptElement) {
+function migrateScript(element: HTMLElement, oldScript: HTMLScriptElement) {
   return new Promise((resolve, reject) => {
-    const script = el.ownerDocument.createElement('script');
+    const script = element.ownerDocument.createElement('script');
     const { src, textContent } = oldScript;
-    const location = el.ownerDocument.defaultView!.location.origin;
-    script.src = src.startsWith(location) ? src.slice(location.length) : src;
+    const location = element.ownerDocument.defaultView!.location.origin;
+    const srcRel = src.startsWith(location) ? src.slice(location.length) : src;
+    srcRel && (script.src = srcRel);
     script.textContent = textContent;
     script.onload = resolve;
     script.onerror = reject;
-    el.removeChild(oldScript);
-    el.appendChild(script);
+    element.removeChild(oldScript);
+    element.appendChild(script);
   });
 }
 
@@ -97,21 +99,21 @@ export function modifyHTML(iframeDoc: IframeDoc, content: string) {
 
 // Reconvert previously edited link to the stored style contents when the iframe
 // is reloaded.
-export function writeStyle(el: HTMLElement): void
+export function writeStyle(headElement: HTMLElement): void
 // Replace a specific link by new a style with the edited content in VSCode.
 export function writeStyle(
-  el: HTMLElement,
+  headElement: HTMLElement,
   content: string,
   fileRel: string
 ): void
 
 export function writeStyle(
-  el: HTMLElement,
+  headElement: HTMLElement,
   content?: string,
   fileRel?: string
 ) {
   const location = window.location.href;
-  let links = [...el.querySelectorAll('link')];
+  let links = [...headElement.querySelectorAll('link')];
   if (fileRel) {
     const id = generateStyleId(fileRel);
     dirtyLinks[id] = content!;
@@ -119,7 +121,7 @@ export function writeStyle(
     // If there's already been an injected style for fileRel, update it.
     if (!links.length) {
       log(content!, `Updating style tag id "${id}"...`);
-      const style = el.querySelector('#' + id);
+      const style = headElement.querySelector('#' + id);
       style && (style.textContent = content!);
       return;
     }
@@ -139,7 +141,8 @@ export function writeStyle(
     const style = document.createElement('style');
     log(content, `Replacing link tag with style tag id "${id}"...`);
     style.id = id, style.textContent = content;
-    el.insertBefore(style, link), el.removeChild(link);
+    headElement.insertBefore(style, link);
+    headElement.removeChild(link);
   });
 
   // Create a unique id for the style.
@@ -174,8 +177,8 @@ function extractContent(htmlContent: string, part: HtmlMainTag): string {
 }
 
 function diffIframe(iframeDoc: IframeDoc, newHTML: HTMLElement) {
-  const el = iframeDoc.documentElement;
-  const dom = nodeToObj(el);
+  const document = iframeDoc.documentElement;
+  const dom = nodeToObj(document);
   const oldDOM = iframeDoc.oldDOM;
   const newDOM = nodeToObj(newHTML);
   log([oldDOM, yamlifyDOM(oldDOM)], 'Raw HTML (1)');
@@ -188,11 +191,12 @@ function diffIframe(iframeDoc: IframeDoc, newHTML: HTMLElement) {
   log([toAmendedHTML, yamlifyDOM(toAmendedHTML)], '2 → 3');
   log([toJSAlteration, yamlifyDOM(toJSAlteration)], '1 → 2');
   // Transform current DOM to the new one with content edited in VSCode.
-  dd.apply(el, toAmendedHTML);
+  dd.apply(document, toAmendedHTML);
   // Apply Js alterations made with the old DOM.
-  dd.apply(el, toJSAlteration);
+  dd.apply(document, toJSAlteration);
   iframeDoc.oldHTML = newHTML.outerHTML;
   iframeDoc.oldDOM = newDOM;
+  writeStyle(iframeDoc.head);
 }
 
 // Shift routes of the elements correspond to the diffs based on whether
