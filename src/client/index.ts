@@ -117,8 +117,9 @@ export function sendMessage(task: string, data: any = null) {
   ws.send(JSON.stringify({ task, data }));
 }
 
-document.addEventListener('resize', () => {
+(function checkResize() {
   const sel = 'iframe[showing=true]';
-  const iframe = document.querySelector<HTMLIFrameElement>(sel)!;
-  highlightHtml(iframe.contentDocument as IframeDoc);
-});
+  const iframe = document.querySelector<HTMLIFrameElement>(sel);
+  iframe && highlightHtml(iframe.contentDocument as IframeDoc);
+  requestAnimationFrame(checkResize);
+})();
