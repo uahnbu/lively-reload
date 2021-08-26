@@ -197,16 +197,17 @@ function diffIframe(iframeDoc: IframeDoc, newHTML: HTMLElement) {
   dd.apply(document, toJSAlteration);
   iframeDoc.oldHTML = newHTML.outerHTML;
   iframeDoc.oldDOM = newDOM;
-  writeStyle(iframeDoc.head);
 }
 
 // Shift routes of the elements correspond to the diffs based on whether
 // previous diffs include adding or removing elements.
 function modifyDiffs(diffs: DiffDOMDiff[], base: DiffDOMDiff[]) {
+  const posAttr = 'lively-position';
+  const jsDiffs = diffs.filter(diff => diff.element?.attributes?.[posAttr]);
   base.forEach(({ action, route, groupLength: size, from, to }) => {
-    action === 'addElement' && shiftDiffs(diffs, route, 1);
-    action === 'removeElement' && shiftDiffs(diffs, route, -1);
-    action === 'relocateGroup' && shiftDiffs(diffs, route, size, from, to);
+    action === 'addElement' && shiftDiffs(jsDiffs, route, 1);
+    action === 'removeElement' && shiftDiffs(jsDiffs, route, -1);
+    action === 'relocateGroup' && shiftDiffs(jsDiffs, route, size, from, to);
   });
 }
 

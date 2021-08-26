@@ -19,7 +19,11 @@ interface DiffDOMNode {
   nodeName   : string
   childNodes?: DiffDOMNode[]
   data      ?: string
-  attributes?: { id?: string, class?: string }
+  attributes?: {
+    id   ?: string,
+    class?: string,
+    'lively-position'?: string
+  }
 }
 
 interface DiffDOMDiff {
@@ -28,6 +32,7 @@ interface DiffDOMDiff {
   from  : number
   to    : number
   groupLength: number
+  element?: DiffDOMNode
 }
 
 interface DiffDomConstructor {
