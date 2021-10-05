@@ -50,7 +50,7 @@
           "default": "2020",
           "minimum": 0,
           "maximum": 65535,
-          "description": "A port to host the server."
+          "description": "A port to bind the server to."
         },
         "livelyReload.openBrowser": {
           "type": "boolean",
@@ -62,29 +62,66 @@
           "default": false,
           "description": "Whether to show logs in the browser's console."
         },
-        "livelyReload.pugOptions": {
-          "type": "object",
-          "default": {
-            "outdir": "dist",
-            "maxLoop": 99,
-            "pretty": true
-          },
-          "description": "Configurations for exported .pug files.\n\nSet \"outdir\" to null to disable exporting .pug files on save.\n(the .pug content will still be servable to the live preview)"
+        "livelyReload.pugCompile.enabled": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Whether to compile `.pug` files to HTML on save.  \n`.pug` content will still be servable to the live preview if compiling is disabled."
         },
-        "livelyReload.sassOptions": {
-          "type": "object",
-          "default": {
-            "outdir": "dist",
-            "pretty": true
-          },
-          "description": "Configurations for exported .scss/.sass files.\n\nSet \"outdir\" to null to disable exporting .scss/.sass files on save.\n(the .scss/.sass content will still be servable to the live preview)"
+        "livelyReload.pugCompile.outdir": {
+          "type": "string",
+          "default": "dist",
+          "markdownDescription": "A directory relative to the workspace folder to compile `.pug` files to."
         },
-        "livelyReload.typescriptOptions": {
+        "livelyReload.pugCompile.maxLoop": {
+          "type": "number",
+          "default": 99,
+          "markdownDescription": "Change the value if you might use a loop with more iterations.  \n`maxLoop` is a safelock constraint in case you trigger infinite loop, e.g.:\n```pug\n- var n = 1; while n\n```"
+        },
+        "livelyReload.pugCompile.pretty": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Whether to compile `.pug` files to pretty *HTML*."
+        },
+        "livelyReload.sassCompile.enabled": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Whether to compile `.scss`/`.sass` files to *CSS* on save.  \n`.scss`/`.sass` content will still be servable to the live preview if compiling is disabled."
+        },
+        "livelyReload.sassCompile.outdir": {
+          "type": "string",
+          "default": "dist",
+          "markdownDescription": "A directory relative to the workspace folder to compile `.scss`/`.sass` files to."
+        },
+        "livelyReload.sassCompile.pretty": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Whether to compile `.scss`/`.sass` files to pretty *CSS*."
+        },
+        "livelyReload.typescriptCompile.enabled": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Whether to compile `.ts` files to *JS* on save.  \nWhen disabled, saved `.ts` files won't be updated, and the preview won't automatically reload.  \n*Typescript* by default does not support compiling minifies."
+        },
+        "livelyReload.typescriptCompile.outdir": {
+          "type": "string",
+          "default": "dist",
+          "markdownDescription": "A directory relative to the workspace folder to compile `.ts` files to."
+        },
+        "livelyReload.typescriptCompile.tsconfig": {
           "type": "object",
           "default": {
-            "outdir": "dist"
+            "downlevelIteration": false,
+            "emitBOM": false,
+            "emitDecoratorMetadata": true,
+            "importHelpers": false,
+            "importsNotUsedAsValues": "preserve",
+            "newLine": null,
+            "preserveConstEnums": false,
+            "target": "ES3",
+            "removeComments": false,
+            "useDefineForClassFields": false
           },
-          "description": "Configurations for exported .ts files.\n\nSet \"outdir\" to null to disable exporting .ts files on save.\n(When set to null, the .js files won't be updated, and the preview won't automatically reload.)"
+          "markdownDescription": "Compiling options inherited from `tsconfig.json`.  \nSee more at https://www.typescriptlang.org/tsconfig."
         }
       }
     }

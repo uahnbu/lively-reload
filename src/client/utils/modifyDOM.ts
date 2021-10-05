@@ -49,52 +49,60 @@ export async function createIframe(
 }
 
 async function loadContent(iframeDoc: IframeDoc, content: string) {
-  const headContent = extractContent(content, 'head');
-  log(headContent, 'Head Tag');
-  if (headContent) {
-    iframeDoc.head.innerHTML = headContent;
-    writeStyle(iframeDoc.head);
-    await activateScripts(iframeDoc.head);
-  }
-  log(iframeDoc.body.innerHTML = extractContent(content, 'body'), 'Body Tag');
-  iframeDoc.oldHTML = iframeDoc.documentElement.outerHTML;
-  iframeDoc.oldDOM = nodeToObj(iframeDoc.documentElement);
-  activateScripts(iframeDoc.body);
+  const newDoc = document.implementation.createHTMLDocument();
+  const newHTML = newDoc.documentElement;
+  newHTML.innerHTML = content;
+  const blankDOM = nodeToObj(iframeDoc.documentElement);
+  const dom = nodeToObj(newHTML);
+  dd.apply(iframeDoc.documentElement, dd.diff(blankDOM, dom));
+  iframeDoc.oldHTML = newHTML.outerHTML;
+  iframeDoc.oldDOM = nodeToObj(newHTML);
+  // const headContent = extractContent(content, 'head');
+  // log(headContent, 'Head Tag');
+  // if (headContent) {
+  //   iframeDoc.head.innerHTML = headContent;
+  //   writeStyle(iframeDoc.head);
+  //   await activateScripts(iframeDoc.head);
+  // }
+  // log(iframeDoc.body.innerHTML = extractContent(content, 'body'), 'Body Tag');
+  // iframeDoc.oldHTML = iframeDoc.documentElement.outerHTML;
+  // iframeDoc.oldDOM = nodeToObj(iframeDoc.documentElement);
+  // activateScripts(iframeDoc.body);
 }
 
 // Scripts added to DOM through innerHTML are not auto-executed and needed to be
 // activated manually.
-async function activateScripts(element: HTMLElement) {
-  const scripts = [...element.querySelectorAll('script')];
-  log('Loading ' + scripts.length + ' script(s)...', 'info');
-  try {
-    const promises = scripts.map(script => migrateScript(element, script));
-    await Promise.all(promises);
-  } catch(e) { throw Error(e) }
-}
+// async function activateScripts(element: HTMLElement) {
+//   const scripts = [...element.querySelectorAll('script')];
+//   log('Loading ' + scripts.length + ' script(s)...', 'info');
+//   try {
+//     const promises = scripts.map(script => migrateScript(element, script));
+//     await Promise.all(promises);
+//   } catch(e) { throw Error(e) }
+// }
 
 // Replace old scripts added through innerHTML by new ones.
-function migrateScript(element: HTMLElement, oldScript: HTMLScriptElement) {
-  return new Promise((resolve, reject) => {
-    const script = element.ownerDocument.createElement('script');
-    const { src, textContent } = oldScript;
-    const location = element.ownerDocument.defaultView!.location.origin;
-    const srcRel = src.startsWith(location) ? src.slice(location.length) : src;
-    srcRel && (script.src = srcRel);
-    script.textContent = textContent;
-    script.onload = resolve;
-    script.onerror = reject;
-    oldScript.parentElement!.removeChild(oldScript);
-    element.appendChild(script);
-  });
-}
+// function migrateScript(element: HTMLElement, oldScript: HTMLScriptElement) {
+//   return new Promise((resolve, reject) => {
+//     const script = element.ownerDocument.createElement('script');
+//     const { src, textContent } = oldScript;
+//     const location = element.ownerDocument.defaultView!.location.origin;
+//     const srcRel = src.startsWith(location) ? src.slice(location.length) : src;
+//     srcRel && (script.src = srcRel);
+//     script.textContent = textContent;
+//     script.onload = resolve;
+//     script.onerror = reject;
+//     oldScript.parentElement!.removeChild(oldScript);
+//     element.appendChild(script);
+//   });
+// }
 
 export function modifyHTML(iframeDoc: IframeDoc, content: string) {
   const newDoc = document.implementation.createHTMLDocument();
   const newHTML = newDoc.documentElement;
   log(content, `Changing HTML content of file ${iframeDoc}...`);
+  // Scripts don't run on virtual DOM.
   newHTML.innerHTML = extractContent(content, 'html');
-  writeStyle(newDoc.head);
   diffIframe(iframeDoc, newHTML);
 }
 
@@ -116,6 +124,7 @@ export function writeStyle(
   const location = window.location.href;
   let links = [...headElement.querySelectorAll('link')];
   if (fileRel) {
+    console.log(fileRel);
     const id = generateStyleId(fileRel);
     dirtyLinks[id] = content!;
     links = links.filter(link => link.href === location + fileRel);
@@ -140,8 +149,10 @@ export function writeStyle(
     // If there's no stored content for the href then quit.
     if (!content) return;
     const style = document.createElement('style');
+    const position = link.getAttribute('lively-position') || '';
     log(content, `Replacing link tag with style tag id "${id}"...`);
     style.id = id, style.textContent = content;
+    style.setAttribute('lively-position', position);
     headElement.insertBefore(style, link);
     headElement.removeChild(link);
   });

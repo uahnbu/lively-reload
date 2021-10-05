@@ -56,24 +56,31 @@ export async function getActiveHtmlData(
 export function getConfig(val: string | string[]) {
   const vsConfigHub = workspace.getConfiguration('livelyReload');
   const config = typeof val === 'string'
-    ? vsConfigHub.get<any>(val)
+    ? vsConfigHub.get(val)
     : val.reduce<any>((c, e) => (c[e] = vsConfigHub.get(e), c), {} as K);
   const root = getRoot();
   if (!root) return config;
   const pkgPath = join(root, 'package.json');
   if (!existsSync(pkgPath)) return config;
+
   const pkgConfigHub = JSON.parse(readFileSync(pkgPath, 'utf-8'))?.livelyReload;
-  if (typeof val === 'string') {
-    const pkgConfig = pkgConfigHub?.[val];
-    if (typeof config !== 'object') return pkgConfig ?? config;
-    return { ...config, ...pkgConfig };
+  if (!pkgConfigHub) return config;
+
+  const pkgConfig = typeof val === 'string' ? pkgConfigHub[val] : pkgConfigHub;
+  if (typeof config === 'object' && typeof pkgConfig === 'object') {
+    mergeObjects(config, pkgConfig);
+    return config;
   }
-  for (const prop in config) {
-    config[prop] = typeof config[prop] === 'object'
-      ? { ...config[prop], ...pkgConfigHub?.[prop] }
-      : pkgConfigHub?.[prop] ?? config[prop];
+  return pkgConfig ?? config;
+}
+
+function mergeObjects(source: K, target: K) {
+  for (const prop in target) {
+    if (typeof target[prop] === 'object') {
+      if (typeof source[prop] !== 'object') source[prop] = {};
+      mergeObjects(source[prop], target[prop]);
+    } else source[prop] = target[prop];
   }
-  return config;
 }
 
 export function openBrowser(url: string) {

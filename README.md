@@ -21,7 +21,7 @@
 * By pressing *Lively Reload* on the statusbar, or using the command `> Go Lively`, the extension will start compiling `.pug`, `.scss`, `.sass`, `.ts` files as configured. The statusbar will then turn *blue*.
 * By going to the configured port on `localhost` (`127.0.0.1`), the extension will start listening to changes on all supported files. The statusbar will turn *green*.
 * To sync the preview across multiple devices, install *Ngrok* manually and create a tunnel to your localhost server.  
-  e.g.
+  e.g. *terminal*:
   ```
   npm i -g ngrok
   ngrok http 2020 --region ap
@@ -35,52 +35,29 @@
 * Only the first workspace is support in a multi-workspace environment, since identification of the active workspace is not an option.
 * *Ngrok* is not built into this extension as it's not compatible with *Webpack*.
 ## Settings
-Settings can also be specified in your `package.json` at root directory, by declaring under the property `"livelyReload"`. These settings will override *VSCode Extension Settings*.
-* **`livelyReload.port`**: A port to host the server.
-  * Default value is `2020`.
-  * Changes will take effect after turning *Lively Reload* off and on again.
-* **`livelyReload.openBrowser`**: Whether to open the browser when *Lively Reload* starts.
-  * Either `true` or `false`. Default to `true`.
-  * Changes will take effect immediately.
-* **`livelyReload.debug`**: Whether to show logs in the browser's console.
-  * Either `true` or `false`. Default to `false`.
-  * Changes will take effect immediately.
-* **`livelyReload.pugOptions`**: Configurations for exported pug files.
-  * Options:
-  ```json
-  {
-    "outdir": "dist",
-    "maxLoop": 999,
-    "pretty": true
+Settings can also be specified in your `package.json` at root directory, by declaring under the property `"livelyReload"`. These settings will override *VSCode Extension Settings*. Changes will take effect immediately when saved.  
+e.g. *package.json*: 
+```json
+{
+  "name": "example-project",
+  "version": "1.0.0",
+  "description": "An example project using package.json to config Lively Reload",
+  /* Other package.json properties */
+  "livelyReload": {
+    "port": 2021,
+    "sassCompile": {
+      "outdir": "dist/styles"
+    },
+    "typescriptCompile": {
+      "outdir": "dist/scripts",
+      "tsconfig": {
+        "target": "ES2015",
+        "downlevelIteration": true
+      }
+    }
   }
-  ```
-  * Set `outdir` to `null` to disable exporting .pug files on save.
-  * When set to `null`, the `.pug` content will still be servable to the live preview.
-  * If the file existed in the target directory, it will be overwrited.
-  * `maxLoop` is the safelock constraint in case you trigger infinite loop such as writing `while n`. Change the value if you will use a loop with more iterations.
-  * Changes will take effect immediately.
-* **`livelyReload.sassOptions`**: Configurations for exported sass files.
-  * Options:
-  ```json
-  {
-    "outdir": "dist",
-    "pretty": true
-  }
-  ```
-  * Set `outdir` to null to disable exporting `.scss`/`.sass` files on save.
-  * When set to `null`, the `.scss`/`.sass` content will still be servable to the live preview.
-  * Changes will take effect immediately.
-* **`livelyReload.typescriptOptions`**: Configurations for exported typescript files.
-  * Options:
-  ```json
-  {
-    "outdir": "dist"
-  }
-  ```
-  * Set `outdir` to `null` to disable exporting `.ts` files on save.
-  * When set to `null`, the `.js` files won't be updated, and the preview won't automatically reload.
-  * Typescript does not support generation of minifies or obfuscated code.
-  * Changes will take effect immediately.
+}
+```
 ## Changelog
 View the changelog [here](./CHANGELOG.md).
 ## License

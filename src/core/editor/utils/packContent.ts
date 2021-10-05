@@ -46,7 +46,7 @@ export async function packPug(
 ) {
   const { render: renderPug } = await import('pug');
   const { getConfig } = await import('../../extension');
-  const { pretty, maxLoop, outdir } = getConfig('pugOptions');
+  const { pretty, maxLoop, outdir } = getConfig('pugCompile');
   // Add loop limit to prevent infinite loop.
   content = content.replace(
     /^(\s*while.*)$/gm,
@@ -96,7 +96,7 @@ export async function packSass(
 ) {
   const { renderSync: renderSass } = await import('sass');
   const { getConfig } = await import('../../extension');
-  const { pretty, outdir } = getConfig('sassOptions');
+  const { pretty, outdir } = getConfig('sassCompile');
   content = renderSass({
     data: content,
     indentedSyntax,
@@ -112,8 +112,30 @@ export async function packSass(
 }
 
 export async function packTs(content: string, root: string, target: string) {
-  const { transpile: renderTs } = await import('typescript');
-  content = renderTs(content);
+  const {
+    transpile: renderTs,
+    ImportsNotUsedAsValues,
+    NewLineKind,
+    ScriptTarget
+  } = await import('typescript');
+  const { getConfig } = await import('../../extension');
+  const { tsconfig } = getConfig('typescriptCompile');
+  replaceConfigEnum(tsconfig, 'importsNotUsedAsValues', ImportsNotUsedAsValues);
+  replaceConfigEnum(tsconfig, 'newLine', NewLineKind);
+  replaceConfigEnum(tsconfig, 'target', ScriptTarget);
+  content = renderTs(content, tsconfig as any);
   const fileRel = target.slice(root.length + 1).replace(/\\/g, '/');
   return { fileRel, content };
+}
+
+function replaceConfigEnum(config: K, key: string, matches: K) {
+  for (const possibleKey in matches) {
+    // Whether config[key] is a string and matches one of the possible values.
+    if (RegExp('^' + possibleKey + '$', 'i').test(config[key])) {
+      config[key] = matches[possibleKey];
+    }
+  }
+  if (config[key] !== void 0 && typeof config[key] !== 'number') {
+    delete config[key];
+  }
 }
