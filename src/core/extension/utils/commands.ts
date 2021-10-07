@@ -95,18 +95,28 @@ export function focusContent(position: number, filePath: string) {
   const currentPath = editor?.document.fileName;
   if (!editor || currentPath !== filePath) return;
   const content = editor.document.getText();
-  const lines: { length: number, breaks: number }[] = [];
+  const lines: { content: string, length: number, breaks: number }[] = [];
   const re = /(^|[\r\n]+).*/g;
   let match: RegExpExecArray | null;
   while (true) {
     if (!(match = re.exec(content))) break;
-    lines[lines.length] = { length: match[0].length, breaks: match[1].length };
+    lines[lines.length] = {
+      content: match[0],
+      length: match[0].length,
+      breaks: match[1].length
+    };
   }
   let line = -1;
   while (true) {
     const lineLen = lines[++line].length;
     if (lineLen > position) break;
-    if ((position -= lineLen) === 0) { position = lines[line].breaks; break }
+    // If the left tag end is at the end of the line or it is a self-closing
+    // tag, put the pointer right after the tag name.
+    if ((position -= lineLen) === 0) {
+      const match = lastMatch(lines[line].content, /<\w+/);
+      position = match ? match.index! + match[0].length : lines[line].breaks;
+      break;
+    }
   }
   const character = position - lines[line].breaks;
   const newPosition = new Position(line, character);
@@ -114,3 +124,25 @@ export function focusContent(position: number, filePath: string) {
   editor.selection = new Selection(newPosition, newPosition);
   editor.revealRange(editor.selection, revealType);
 }
+
+function lastMatch(str: string, re: RegExp, pivot = str.length - 1) {
+  if (pivot >= str.length) return null;
+  for (let i = pivot, substr = str.slice(pivot + 1); i !== -1; --i) {
+    substr = str[i] + substr;
+    const match = substr.match(re);
+    if (match && (match.index! += i) <= pivot) return match;
+  }
+  return null;
+}
+
+// In case matches don't overlap with each other.
+// function lastMatch(str: string, re: RegExp, index = str.length - 1) {
+//   const flagsWithGlobal = [...new Set([...re.flags + 'g'])].join('');
+//   re = RegExp(re, flagsWithGlobal);
+//   let match: RegExpExecArray | null = null;
+//   while (true) {
+//     const next = re.exec(str);
+//     if (next === null || next.index > index) return match;
+//     match = next;
+//   }
+// }
