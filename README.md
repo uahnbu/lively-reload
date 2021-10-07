@@ -37,12 +37,12 @@
 ## Settings
 Settings can also be specified in your `package.json` at root directory, by declaring under the property `"livelyReload"`. These settings will override *VSCode Extension Settings*. Changes will take effect immediately when saved.  
 e.g. *package.json*: 
-```json
+```javascript
 {
   "name": "example-project",
   "version": "1.0.0",
   "description": "An example project using package.json to config Lively Reload",
-  /* Other package.json properties */
+  // Other package.json properties
   "livelyReload": {
     "port": 2021,
     "sassCompile": {
