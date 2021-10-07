@@ -94,14 +94,21 @@ export function focusContent(position: number, filePath: string) {
   const editor = window.activeTextEditor;
   const currentPath = editor?.document.fileName;
   if (!editor || currentPath !== filePath) return;
-  const lines = editor.document.getText().split(/\r?\n/);
+  const content = editor.document.getText();
+  const lines: { length: number, breaks: number }[] = [];
+  const re = /(^|[\r\n]+).*/g;
+  let match: RegExpExecArray | null;
+  while (true) {
+    if (!(match = re.exec(content))) break;
+    lines[lines.length] = { length: match[0].length, breaks: match[1].length };
+  }
   let line = -1;
   while (true) {
-    const lineLen = lines[++line].trimStart().length;
+    const lineLen = lines[++line].length;
     if (lineLen > position) break;
-    if ((position -= lineLen) === 0) { position = 1; break }
+    if ((position -= lineLen) === 0) { position = lines[line].breaks; break }
   }
-  const character = position + lines[line].search(/\S|$/);
+  const character = position - lines[line].breaks;
   const newPosition = new Position(line, character);
   const revealType = TextEditorRevealType.InCenter;
   editor.selection = new Selection(newPosition, newPosition);

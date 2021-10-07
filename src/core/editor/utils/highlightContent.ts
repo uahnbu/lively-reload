@@ -9,71 +9,57 @@ export function highlight(content: string, filetype: 'html'): HtmlHighlight
 export function highlight(content: string, filetype: 'css'): string[]
 
 export function highlight(content: string, filetype: 'html' | 'css') {
-  const lines = content.split(/\r?\n/);
-  const spaces: { index: number, len: number }[] = [];
-  // Number of newlines.
-  let breakCount = 0;
-  // Remove newlines and subsequent spaces, and simultaneously record the
-  // spaces at the start of each line.
-  content = content.replace(/(^|[\n\r]+)\s*/g, (match, breaks, i) => {
-    // Shift the index backward by the number of previously matched spaces.
-    const index = i - breakCount;
-    const len = match.length - breaks.length;
-    spaces[spaces.length] = { index, len };
-    breakCount += breaks.length;
-    return '';
-  });
+  const lines: {
+    index : number, length: number,
+    spaces: number, breaks: number
+  }[] = [];
+  const re = /(^|[\r\n]+)(\s*).*/g;
+  let match: RegExpExecArray | null;
+  while (true) {
+    if (!(match = re.exec(content))) break;
+    lines[lines.length] = {
+      index : match.index,
+      length: match[0].length,
+      breaks: match[1].length,
+      spaces: match[2].length
+    };
+  }
 
   const selections = window.activeTextEditor!.selections.map(sel => ({
     start: getIndex(sel.start.character, sel.start.line),
     end: getIndex(sel.end.character, sel.end.line)
   })) as ShiftedSelection[];
+
   if (filetype === 'html') {
     // Ingore pointers put among the starting spaces as they are unlikely to be
     // the user's intention to select the element.
     const usefulSelections = selections.filter(({ start, end }) => (
-      !spaces.some(({ index, len }) => start >= index && end <= index + len)
+      !lines.some(({ index, spaces, breaks }) => {
+        return start >= index + breaks && end <= index + breaks + spaces
+      })
     ));
-    // Shift the index backward by the number of previous starting spaces.
-    usefulSelections.forEach(sel => {
-      sel.start -= countPrevSpaces(sel.start);
-      sel.end -= countPrevSpaces(sel.end);
-    });
     return highlightHtml(content, usefulSelections);
   }
   if (filetype === 'css') {
     // If the user put a pointer among the starting spaces, it's considered
     // that they want to select the css selector.
-    // Shift the index backward by the number of previous starting spaces.
-    selections.forEach(sel => {
-      sel.start -= countPrevSpaces(sel.start);
-      sel.end -= countPrevSpaces(sel.end);
-    });
     return highlightCss(content, selections);
   }
 
   // Turn 2-dimensional position to 1-dimensional index.
   function getIndex(x: number, y: number) {
-    return lines.slice(0, y).reduce((len, line) => len + line.length, 0) + x;
-  }
-
-  function countPrevSpaces(pivot: number) {
-    return spaces.reduce((total, { index, len }) => {
-      // The spaces is behind the pivot.
-      if (index > pivot) return total;
-      // The pivot is in between the spaces.
-      if (index + len > pivot) return total + pivot - index;
-      return total + len;
-    }, 0);
+    const fullLines = lines.slice(0, y);
+    const fullLength = fullLines.reduce((len, line) => len + line.length, 0);
+    return fullLength + lines[y].breaks + x;
   }
 }
 
 function highlightHtml(content: string, selections: ShiftedSelection[]) {
   const stack: TagNode[] = [], graph: TagNode[] = [], list: TagNode[] = [];
-  // Replace opening/closing tags inside strings.
-  const dummy = content.replace(/'.*?'|".*?"/g, x => 'x'.repeat(x.length));
+  // Replace strings, which may include opening/closing tags.
+  const dummy = content.replace(/('|")[\s\S]*?\1/g, x => 'x'.repeat(x.length));
   // Match opening/closing tags.
-  const re = /<\/?[a-z-]+.*?>/gi;
+  const re = /<\/?[a-z-]+[\s\S]*?>/gi;
   while (true) {
     const match = re.exec(dummy);
     if (!match) break;
@@ -118,7 +104,7 @@ function highlightHtml(content: string, selections: ShiftedSelection[]) {
   function addHighlights(node: TagNode, start: number, end: number): boolean {
     const { leftStart, leftEnd, rightStart, rightEnd, children } = node;
     if (start >= rightEnd || end <= leftStart) return false;
-    if (content.slice(leftStart, leftEnd).startsWith('<style')) {
+    if (/^<style/i.test(content.slice(leftStart, leftEnd))) {
       const innerContent = content.slice(leftEnd, rightStart);
       const selections = [{ start: start - leftEnd, end: end - leftEnd }];
       highlightIds.push(...highlightCss(innerContent, selections));
@@ -132,7 +118,7 @@ function highlightHtml(content: string, selections: ShiftedSelection[]) {
       // The pointer is completely inside the element's content, i.e. innerHTML,
       // and there's no child that covers the selection.
       !children?.map(node => addHighlights(node, start, end)).some(Boolean)
-    ) { highlightIds[highlightIds.length] = leftEnd }
+    ) highlightIds[highlightIds.length] = leftEnd;
     // At least one child node intersects with the selection, in which case true
     // is returned as well.
     return true;
