@@ -18,8 +18,8 @@
         },
         "background": {
           "activeOnStart": true,
-          "beginsPattern": "^Issues checking in progress...$",
-          "endsPattern": "^webpack.*compiled.*ms$"
+          "beginsPattern": "^webpack.*compiled.*ms\\s*$",
+          "endsPattern": "^webpack.*compiled.*ms\\s*$"
         }
       },
       "isBackground": true,

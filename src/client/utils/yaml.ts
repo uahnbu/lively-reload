@@ -88,11 +88,11 @@ export class YAMLDOM extends YAML {
       for (const key in attributes) {
         if (key === 'id' || key === 'class') continue;
         const val = this.dfs(attributes[key], lvl, true);
-        str += bond + '\x1b[35m' + key + '\x1b[39m:' + val;
+        str += bond + key + ':' + val;
       }
       return str;
     }
-    const prop = bond + '\x1b[35m' + key + '\x1b[39m:';
+    const prop = bond + key + ':';
     if (key === 'nodeName') {
       const { nodeName, attributes } = node;
       let str = prop + ' ' + nodeName;
@@ -107,7 +107,7 @@ export class YAMLDOM extends YAML {
       key === 'childNodes' &&
       node.childNodes.length === 1 &&
       node.childNodes[0].nodeName === '#text'
-    ) return bond + '\x1b[35mdata\x1b[39m: ' + node.childNodes[0].data;
+    ) return bond + 'data: ' + node.childNodes[0].data;
     return prop + this.dfs(node[key], lvl, true);
   }
 }

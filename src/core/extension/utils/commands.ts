@@ -134,15 +134,3 @@ function lastMatch(str: string, re: RegExp, pivot = str.length - 1) {
   }
   return null;
 }
-
-// In case matches don't overlap with each other.
-// function lastMatch(str: string, re: RegExp, index = str.length - 1) {
-//   const flagsWithGlobal = [...new Set([...re.flags + 'g'])].join('');
-//   re = RegExp(re, flagsWithGlobal);
-//   let match: RegExpExecArray | null = null;
-//   while (true) {
-//     const next = re.exec(str);
-//     if (next === null || next.index > index) return match;
-//     match = next;
-//   }
-// }

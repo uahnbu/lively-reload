@@ -53,6 +53,9 @@ async function handleMessage(msg: string, ws: WebSocket) {
     focusContent(position, filePath);
     return;
   }
+  if (task === 'unload') {
+    console.log('UNLOADING...');
+  }
 }
 
 async function handleClose(ws: WebSocket) {

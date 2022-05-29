@@ -102,7 +102,8 @@ export function modifyHTML(iframeDoc: IframeDoc, content: string) {
   const newHTML = newDoc.documentElement;
   log(content, `Changing HTML content of file ${iframeDoc}...`);
   // Scripts don't run on virtual DOM.
-  newHTML.innerHTML = extractContent(content, 'html');
+  newHTML.innerHTML = content;
+  // newHTML.innerHTML = extractContent(content, 'html');
   diffIframe(iframeDoc, newHTML);
 }
 
@@ -164,29 +165,29 @@ export function writeStyle(
   }
 }
 
-function extractContent(htmlContent: string, part: HtmlMainTag): string {
-  if (part === 'body') {
-    const bodyMatch = htmlContent.match(/(?<=<body.*?>).*(?=<\/body>)/i);
-    if (bodyMatch) return bodyMatch[0];
-    const bodyExtracted = htmlContent
-      // Remove html tags.
-      .replace(/.*<html.*?>(.*)<\/html>.*/i, '$1')
-      // Remove head tags.
-      .replace(/<(head|style|title).*?>.*?<\/\1>|<(link|meta).*?>/gi, '');
-    return bodyExtracted;
-  }
-  if (part === 'head') {
-    const headMatch = htmlContent.match(/(?<=<head.*?>).*(?=<\/head>)/i);
-    if (headMatch) return headMatch[0];
-    const re = /<(style|title).*?>.*?<\/\1>|<(link|meta).*?>/gi;
-    const headExtracted = htmlContent.match(re);
-    return headExtracted?.join('') || '';
-  }
-  // The html, head, body tags' attributes are removed.
-  const head = '<head>' + extractContent(htmlContent, 'head') + '</head>';
-  const body = '<body>' + extractContent(htmlContent, 'body') + '</body>';
-  return head + body;
-}
+// function extractContent(htmlContent: string, part: HtmlMainTag): string {
+//   if (part === 'body') {
+//     const bodyMatch = htmlContent.match(/(?<=<body.*?>).*(?=<\/body>)/i);
+//     if (bodyMatch) return bodyMatch[0];
+//     const bodyExtracted = htmlContent
+//       // Remove html tags.
+//       .replace(/.*<html.*?>(.*)<\/html>.*/i, '$1')
+//       // Remove head tags.
+//       .replace(/<(head|style|title).*?>.*?<\/\1>|<(link|meta).*?>/gi, '');
+//     return bodyExtracted;
+//   }
+//   if (part === 'head') {
+//     const headMatch = htmlContent.match(/(?<=<head.*?>).*(?=<\/head>)/i);
+//     if (headMatch) return headMatch[0];
+//     const re = /<(style|title).*?>.*?<\/\1>|<(link|meta).*?>/gi;
+//     const headExtracted = htmlContent.match(re);
+//     return headExtracted?.join('') || '';
+//   }
+//   // The html, head, body tags' attributes are removed.
+//   const head = '<head>' + extractContent(htmlContent, 'head') + '</head>';
+//   const body = '<body>' + extractContent(htmlContent, 'body') + '</body>';
+//   return head + body;
+// }
 
 function diffIframe(iframeDoc: IframeDoc, newHTML: HTMLElement) {
   const document = iframeDoc.documentElement;
@@ -197,15 +198,13 @@ function diffIframe(iframeDoc: IframeDoc, newHTML: HTMLElement) {
   log([dom, yamlifyDOM(dom)], 'Js-altered HTML (2)');
   log([newDOM, yamlifyDOM(newDOM)], 'Editor-modified HTML (3)');
 
-  const toAmendedHTML = dd.diff(dom, newDOM);
+  const toAmendedHTML = dd.diff(oldDOM, newDOM);
   const toJSAlteration = dd.diff(oldDOM, dom);
-  modifyDiffs(toJSAlteration, toAmendedHTML);
+  modifyDiffs(toAmendedHTML, toJSAlteration);
   log([toAmendedHTML, yamlifyDOM(toAmendedHTML)], '2 → 3');
   log([toJSAlteration, yamlifyDOM(toJSAlteration)], '1 → 2');
   // Transform current DOM to the new one with content edited in VSCode.
   dd.apply(document, toAmendedHTML);
-  // Apply Js alterations made with the old DOM.
-  dd.apply(document, toJSAlteration);
   iframeDoc.oldHTML = newHTML.outerHTML;
   iframeDoc.oldDOM = newDOM;
 }
@@ -213,23 +212,28 @@ function diffIframe(iframeDoc: IframeDoc, newHTML: HTMLElement) {
 // Shift routes of the elements correspond to the diffs based on whether
 // previous diffs include adding or removing elements.
 function modifyDiffs(diffs: DiffDOMDiff[], base: DiffDOMDiff[]) {
-  const posAttr = 'lively-position';
-  const jsDiffs = diffs.filter(diff => diff.element?.attributes?.[posAttr]);
   base.forEach(({ action, route, groupLength: size, from, to }) => {
-    action === 'addElement' && shiftDiffs(jsDiffs, route, 1);
-    action === 'removeElement' && shiftDiffs(jsDiffs, route, -1);
-    action === 'relocateGroup' && shiftDiffs(jsDiffs, route, size, from, to);
+    // console.log('ACTION:', action);
+    if (action === 'addElement' || action === 'addTextElement') {
+      shiftDiffs(diffs, route, 1);
+    }
+    if (action === 'removeElement' || action === 'removeTextElement') {
+      shiftDiffs(diffs, route, -1);
+    }
+    if (action === 'relocateGroup') {
+      shiftDiffs(diffs, route, size, from, to);
+    }
   });
 }
 
 function shiftDiffs(
-  diffs : DiffDOMDiff[],
+  diffs: DiffDOMDiff[],
   baseRoute: number[],
-  vector: number,
-  tail ?: number,
-  head ?: number
+  vect : number,
+  tail?: number,
+  head?: number,
 ) {
-  const lastPoint = baseRoute.length - +!head;
+  const lastPoint = baseRoute.length - +(head == null);
   diffs.forEach(({route}) => {
     if (route.length < lastPoint + 1) return;
     for (let i = 0; i < lastPoint; ++i) {
@@ -237,11 +241,11 @@ function shiftDiffs(
     }
     const step = route[lastPoint];
     // Shift last point of the route up or down 1 floor.
-    if (!tail) {
+    if (tail == null || head == null) {
       if (step < baseRoute[lastPoint]) return;
       // The basis route's last point is behind the examining route's last
       // point, hence affecting that point of the examining route.
-      route[lastPoint] += vector;
+      route[lastPoint] += vect;
       return;
     }
     //              1                  5
@@ -251,12 +255,11 @@ function shiftDiffs(
     //      |       3                  7
     //      ↓             -----------
     //              4                  8
-    head = head!;
     // Move the element from tail to head. (2, 7)
-    step >= tail && step < tail + vector && (route[lastPoint] += head - tail);
+    step >= tail && step < tail + vect && (route[lastPoint] += head - tail);
     // Pull the element up. (3)
-    step >= tail + vector && step < head! && (route[lastPoint] -= vector);
+    step >= tail + vect && step < head + vect && (route[lastPoint] -= vect);
     // Push the element down. (6)
-    step >= head && step < tail && (route[lastPoint] += vector);
+    step >= head && step < tail && (route[lastPoint] += vect);
   });
 }

@@ -161,7 +161,7 @@
     "webpack-cli": "^4.7.2"
   },
   "dependencies": {
-    "diff-dom": "^4.2.2",
+    "diff-dom": "^4.2.3",
     "express": "^4.17.1",
     "html-validate": "^4.14.0",
     "ngrok": "^4.0.1",
